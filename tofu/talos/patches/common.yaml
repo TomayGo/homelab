@@ -1,0 +1,27 @@
+# 全ノード共通。gen config（v1.13 契約）の既定値との差分だけを書く
+cluster:
+  allowSchedulingOnControlPlanes: true
+  apiServer:
+    extraArgs:
+      default-not-ready-toleration-seconds: "30"
+      default-unreachable-toleration-seconds: "30"
+  controllerManager:
+    extraArgs:
+      node-monitor-period: 2s
+      node-monitor-grace-period: 16s
+machine:
+  install:
+    # talosctl upgrade では書き換わらないので v1.13.6 のまま（qemu-guest-agent 入りの schematic）
+    image: factory.talos.dev/installer/ce4c980550dd2ab1b17bbf2b08801c7eb59418eafe8f279833297925d67c7515:v1.13.6
+  kubelet:
+    extraArgs:
+      node-status-update-frequency: 4s
+  nodeLabels:
+    # 全ノードが control-plane なので、これがあると MetalLB が announce できるノードがなくなる
+    node.kubernetes.io/exclude-from-external-load-balancers:
+      $patch: delete
+---
+# gen config が出す HostnameConfig（auto: stable）は消し、各ノードのパッチで hostname だけのものを入れ直す
+apiVersion: v1alpha1
+kind: HostnameConfig
+$patch: delete

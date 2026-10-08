@@ -1,0 +1,21 @@
+machine:
+  network:
+    interfaces:
+      - interface: ens18
+        addresses:
+          - 192.168.1.84/24
+        routes:
+          - network: 0.0.0.0/0
+            gateway: 192.168.1.1
+        vip:
+          ip: 192.168.1.89
+      - interface: ens19
+        addresses:
+          - 10.10.3.3/28
+        routes:
+          - network: 10.10.0.0/16
+            gateway: 10.10.3.1
+---
+apiVersion: v1alpha1
+kind: HostnameConfig
+hostname: talos-cp-3
