@@ -1,0 +1,55 @@
+- name: /etc/udev/rules.d/85-thunderbolt-net.rules
+  ansible.builtin.copy:
+    src: 85-thunderbolt-net.rules
+    dest: /etc/udev/rules.d/85-thunderbolt-net.rules
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload udev
+
+- name: /etc/udev/rules.d/99-thunderbolt-net.rules
+  ansible.builtin.copy:
+    src: 99-thunderbolt-net.rules
+    dest: /etc/udev/rules.d/99-thunderbolt-net.rules
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload udev
+
+- name: /etc/modules-load.d/thunderbolt-net.conf
+  ansible.builtin.copy:
+    src: thunderbolt-net.conf
+    dest: /etc/modules-load.d/thunderbolt-net.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: /etc/systemd/system/thunderbolt-ecmp.service
+  ansible.builtin.copy:
+    src: thunderbolt-ecmp.service
+    dest: /etc/systemd/system/thunderbolt-ecmp.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload systemd
+
+- name: /usr/local/bin/thunderbolt-ecmp-setup.sh
+  ansible.builtin.copy:
+    src: thunderbolt-ecmp-setup.sh
+    dest: /usr/local/bin/thunderbolt-ecmp-setup.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: /usr/local/bin/thunderbolt-net-recover.sh
+  ansible.builtin.copy:
+    src: thunderbolt-net-recover.sh
+    dest: /usr/local/bin/thunderbolt-net-recover.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: thunderbolt-ecmp.service is enabled
+  ansible.builtin.systemd_service:
+    name: thunderbolt-ecmp
+    enabled: true

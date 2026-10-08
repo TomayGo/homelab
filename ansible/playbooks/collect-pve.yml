@@ -1,0 +1,29 @@
+# PVE ホストの管理対象ファイルを collected/<host>/ に回収する（読み取りのみ。collected/ は gitignore 対象）
+- name: Collect managed files from PVE hosts
+  hosts: pve
+  gather_facts: false
+  vars:
+    collect_files:
+      - /etc/network/interfaces
+      - /etc/frr/frr.conf
+      - /etc/frr/daemons
+      - /etc/sysctl.d/90-usb4-ecmp.conf
+      - /etc/udev/rules.d/85-thunderbolt-net.rules
+      - /etc/udev/rules.d/99-thunderbolt-net.rules
+      - /etc/modules-load.d/thunderbolt-net.conf
+      - /etc/systemd/system/thunderbolt-ecmp.service
+      - /etc/systemd/system/thunderbolt-irq-affinity.service
+      - /etc/systemd/system/node_exporter.service
+      - /etc/systemd/system/frr_exporter.service
+      - /etc/systemd/system/prometheus-pve-exporter.service
+      - /usr/local/bin/thunderbolt-ecmp-setup.sh
+      - /usr/local/bin/thunderbolt-irq-affinity.sh
+      - /usr/local/bin/thunderbolt-net-recover.sh
+      - /etc/prometheus/pve.yml
+  tasks:
+    - name: Fetch files
+      ansible.builtin.fetch:
+        src: "{{ item }}"
+        dest: "{{ playbook_dir }}/../collected/"
+        fail_on_missing: false
+      loop: "{{ collect_files }}"

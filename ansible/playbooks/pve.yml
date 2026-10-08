@@ -1,0 +1,14 @@
+# PVE ホスト（pve-1/2/3）。本適用は1台ずつ。ネットワークと FRR の変更後は OSPF の隣接と ceph -s を確認してから次へ
+- name: PVE hosts
+  hosts: pve
+  gather_facts: false
+  serial: 1
+  roles:
+    - pve_network
+    - frr
+    - sysctl
+    - thunderbolt_net
+    - thunderbolt_irq
+    - node_exporter
+    - frr_exporter
+    - pve_exporter

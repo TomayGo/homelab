@@ -1,0 +1,34 @@
+frr version 10.6.1
+frr defaults traditional
+hostname {{ inventory_hostname }}
+log syslog informational
+service integrated-vtysh-config
+!
+interface dummy0
+ ip ospf area 0
+ ip ospf passive
+exit
+!
+interface tb0
+ ip ospf area 0
+ ip ospf dead-interval 3
+ ip ospf hello-interval 1
+ ip ospf network point-to-point
+exit
+!
+interface tb1
+ ip ospf area 0
+ ip ospf dead-interval 3
+ ip ospf hello-interval 1
+ ip ospf network point-to-point
+exit
+!
+interface vmbr9
+ ip ospf area 0
+ ip ospf passive
+exit
+!
+router ospf
+ ospf router-id {{ mesh_loopback }}
+exit
+!

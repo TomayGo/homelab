@@ -1,0 +1,40 @@
+- name: Installed node_exporter version
+  ansible.builtin.command: /usr/local/bin/node_exporter --version
+  register: node_exporter_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Install node_exporter {{ node_exporter_version }}
+  when: ("version " + node_exporter_version + " ") not in (node_exporter_installed.stdout + node_exporter_installed.stderr)
+  block:
+    - name: Download and unpack node_exporter
+      ansible.builtin.unarchive:
+        src: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
+        dest: /tmp
+        remote_src: true
+
+    - name: Install the node_exporter binary
+      ansible.builtin.copy:
+        src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
+        dest: /usr/local/bin/node_exporter
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      notify: Restart node_exporter
+
+- name: /etc/systemd/system/node_exporter.service
+  ansible.builtin.copy:
+    src: node_exporter.service
+    dest: /etc/systemd/system/node_exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart node_exporter
+
+- name: node_exporter is enabled and running
+  ansible.builtin.systemd_service:
+    name: node_exporter
+    enabled: true
+    state: started

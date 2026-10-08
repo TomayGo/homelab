@@ -1,0 +1,63 @@
+auto lo
+iface lo inet loopback
+
+auto nic0
+iface nic0 inet manual
+	mtu 9000
+
+auto nic1
+iface nic1 inet manual
+	mtu 9000
+
+auto bond0
+iface bond0 inet manual
+	bond-slaves nic0 nic1
+	bond-miimon 100
+	bond-mode balance-alb
+	mtu 9000
+
+auto vmbr0
+iface vmbr0 inet static
+	address {{ lan_address }}
+	gateway 192.168.1.1
+	bridge-ports bond0
+	bridge-stp off
+	bridge-fd 0
+	mtu 1500
+{% for i in manual_ifaces %}
+
+iface {{ i }} inet manual
+{% endfor %}
+
+auto tb0
+iface tb0 inet static
+	address {{ tb0_address }}
+	mtu 9000
+	post-up ethtool -K tb0 tso off gso off gro off
+
+auto tb1
+iface tb1 inet static
+	address {{ tb1_address }}
+	mtu 9000
+	post-up ethtool -K tb1 tso off gso off gro off
+
+auto dummy0
+iface dummy0 inet static
+	address {{ mesh_loopback }}/32
+	pre-up ip link add dummy0 type dummy 2>/dev/null || true
+	post-up ip rule add from {{ mesh_loopback }} lookup 100 prio 100 2>/dev/null || true
+	post-up ip rule add from {{ tb0_address.split('/')[0] }} lookup 100 prio 100 2>/dev/null || true
+	post-up ip rule add from {{ tb1_address.split('/')[0] }} lookup 100 prio 100 2>/dev/null || true
+{% for r in mesh_ecmp_routes %}
+	post-up ip route replace {{ r.dest }} table 100{% for n in r.nexthops %} nexthop via {{ n.via }} dev {{ n.dev }} weight 1{% endfor %}
+
+{% endfor %}
+
+auto vmbr9
+iface vmbr9 inet static
+	address {{ vmbr9_address }}
+	bridge-ports none
+	bridge-stp off
+	bridge-fd 0
+
+source /etc/network/interfaces.d/*

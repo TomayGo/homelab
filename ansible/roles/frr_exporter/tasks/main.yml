@@ -1,0 +1,40 @@
+- name: Installed frr_exporter version
+  ansible.builtin.command: /usr/local/bin/frr_exporter --version
+  register: frr_exporter_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Install frr_exporter {{ frr_exporter_version }}
+  when: ("version " + frr_exporter_version + " ") not in (frr_exporter_installed.stdout + frr_exporter_installed.stderr)
+  block:
+    - name: Download and unpack frr_exporter
+      ansible.builtin.unarchive:
+        src: "https://github.com/tynany/frr_exporter/releases/download/v{{ frr_exporter_version }}/frr_exporter-{{ frr_exporter_version }}.linux-amd64.tar.gz"
+        dest: /tmp
+        remote_src: true
+
+    - name: Install the frr_exporter binary
+      ansible.builtin.copy:
+        src: "/tmp/frr_exporter-{{ frr_exporter_version }}.linux-amd64/frr_exporter"
+        dest: /usr/local/bin/frr_exporter
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      notify: Restart frr_exporter
+
+- name: /etc/systemd/system/frr_exporter.service
+  ansible.builtin.copy:
+    src: frr_exporter.service
+    dest: /etc/systemd/system/frr_exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart frr_exporter
+
+- name: frr_exporter is enabled and running
+  ansible.builtin.systemd_service:
+    name: frr_exporter
+    enabled: true
+    state: started
