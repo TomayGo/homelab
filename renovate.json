@@ -99,6 +99,23 @@
         "ghcr.io/tomaygo/pricetracker"
       ],
       "enabled": false
+    },
+    {
+      "description": "自分のリポジトリ（targetRevision: main）は更新対象にしない",
+      "matchDatasources": [
+        "git-tags"
+      ],
+      "matchPackageNames": [
+        "git@github.com:TomayGo/homelab.git"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "manifest の apiVersion は更新対象にしない",
+      "matchDatasources": [
+        "kubernetes-api"
+      ],
+      "enabled": false
     }
   ]
 }
