@@ -1,0 +1,8 @@
+creation_rules:
+  - path_regex: k8s/.*\.enc\.ya?ml$
+    encrypted_regex: ^(data|stringData)$
+    age: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+  - path_regex: ansible/.*\.sops\.ya?ml$
+    age: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+  - path_regex: tofu/.*\.enc\.ya?ml$
+    age: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
