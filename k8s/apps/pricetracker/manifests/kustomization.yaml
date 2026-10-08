@@ -1,0 +1,5 @@
+# Secret（*.enc.yaml）は Phase 1 で KSOPS の generator に載せる。それまでは sops -d | kubectl apply -f - で手動適用
+resources:
+  - namespace.yaml
+  - pvc.yaml
+  - deployment.yaml

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: pricetracker-env
+    namespace: pricetracker
+type: Opaque
+stringData:
+    DISCORD_TOKEN: ENC[AES256_GCM,data:FwZIuevq39BSVvpxCl89j+3wIGF6Jo3NIiuQsPL5200bTdhuZbOs4hORXDfB9JQfO0yVgAIbxk3K2D+xtoXGMDzCtHLT6Oxh,iv:y6cHvA6P7qEe/qDi3Wf6Vol5uFxpWk55I6a2DGPzl4c=,tag:bPEU+Fzxm50Z5Wfr4+zsrQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA3WjlaalorbndFVHM4UHB3
+            d2ZDelBjRW1Md2I1czc4WWVPQXgyZDE5UkZNClBsWjR4ZCtaUWFkbFV2UnRtN2ho
+            c013V2dnT0FMbjE3TktvZEp5SlZwN0EKLS0tIE5nRmhZSzRuUkZyNFVEeHVFdFBK
+            SjJwd2lYaWVlVW9kdUxaOVN4SDhGOHMK89PLxPN7E9yDTz7fUWgy41WKNEYYqmLV
+            6WtVkYMT8UopBdS4FvgLGv947UjkH/Q+Faq76dN2AYoNwX73K57wPg==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-08T16:43:08Z"
+    mac: ENC[AES256_GCM,data:kmaszt1FM9Hc3z9XuAjmW/dd7VYXTUEz6GlaX7/Jfv7F+KkGMGgwG2NNWeT65C0jjIbxCscP+XyPBYNHE6wjxY9DzW5n629h1xlfJL4WfsH0xqUu01wc++bh1/0Og41wVqKQn54RV9KPnT1VgplgwMgsSU46MwkCJPrlRv3mkuM=,iv:J1XoiwgqfItRiUb3YoqEHjMcBBWQ1HZ/3efeXOZcO8Y=,tag:epyW5NmcsuyeghTIB/nEUw==,type:str]
+    version: 3.13.3

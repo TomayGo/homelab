@@ -1,0 +1,59 @@
+# Discord 価格トラッカー bot（2026-10-09 CT500 の systemd サービスから移行）
+# 同じトークンで2つ動くと通知が二重になるので、レプリカは常に1
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pricetracker
+  namespace: pricetracker
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: pricetracker
+  template:
+    metadata:
+      labels:
+        app: pricetracker
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: pricetracker
+          image: ghcr.io/tomaygo/pricetracker:sha-26912c0
+          env:
+            - name: DB_PATH
+              value: /data/pricetracker.db
+            - name: MONITOR_INTERVAL
+              value: 30m
+            - name: TZ
+              value: Asia/Tokyo
+          envFrom:
+            - secretRef:
+                name: pricetracker-env
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: pricetracker-data
