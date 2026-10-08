@@ -59,7 +59,16 @@
 
 ## 残り
 
-- [ ] sync（手順書の順。差分は追跡用注釈だけ）
-- [ ] Helm release Secretの削除（argocd、kube-prometheus-stack、cnpg、netbox、metallb、tailscale-operator）
+- [x] sync（2026-10-09、手順書の順）。12個すべてSynced / Healthy。sync前後でPodのUIDと再起動回数に変化なし
+- [x] Helm release Secretの削除（2026-10-09）。`helm list -A`は空。削除前の中身は`pve-1:/root/backups/iac-phase1-2026-10-09/helm-release-secrets.json`に退避した
 - [ ] 数日様子を見てから`automated`（`selfHeal: true`）を有効にする。`prune`は全アプリの取り込み後
 - [ ] `argocd-initial-admin-secret`の扱い（ログイン後に削除）
+
+## Phase 1の完了条件（2026-10-09時点）
+
+- [x] 全アプリがArgo CD上でSynced / Healthy
+- [x] `helm list -A`が空
+- [x] 平文のSecretがリポジトリに存在しない（全履歴を`git grep`し、追跡中の全YAMLのSecretの値が`ENC[`であることを確認した）
+- [x] Argo CD自身もGit経由で管理されている（Application `argocd`）
+
+自動sync（`selfHeal`）の有効化は、手順書どおり数日様子を見てから行う。
