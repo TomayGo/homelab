@@ -1,0 +1,10 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - llmjp-proxy.yaml
+# proxy.py を変えると ConfigMap 名のハッシュが変わり Deployment がロールする
+configMapGenerator:
+  - name: llmjp-proxy
+    namespace: ai
+    files:
+      - proxy.py

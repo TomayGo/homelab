@@ -1,0 +1,25 @@
+apiVersion: csi.ceph.io/v1
+kind: CephConnection
+metadata:
+  name: pve-ceph
+  namespace: ceph-csi-operator-system
+spec:
+  monitors:
+  - 192.168.1.79:6789
+  - 192.168.1.80:6789
+  - 192.168.1.81:6789
+---
+apiVersion: csi.ceph.io/v1
+kind: ClientProfile
+metadata:
+  name: pve-ceph
+  namespace: ceph-csi-operator-system
+spec:
+  cephConnectionRef:
+    name: pve-ceph
+---
+apiVersion: csi.ceph.io/v1
+kind: Driver
+metadata:
+  name: rbd.csi.ceph.com
+  namespace: ceph-csi-operator-system

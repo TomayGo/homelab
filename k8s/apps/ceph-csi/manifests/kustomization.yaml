@@ -1,9 +1,8 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
 resources:
-  - cluster-netbox-db.yaml
-  - namespace.yaml
-  - service-tailnet.yaml
-  - valkey.yaml
+  - ceph-connection.yaml
+  - operator-install-v1.0.4.yaml
+  - storageclass.yaml
 generators:
   - secret-generator.yaml

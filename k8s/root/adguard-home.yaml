@@ -1,0 +1,18 @@
+# 取り込みが終わるまで syncPolicy.automated は書かない（手順書 1-4）
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: adguard-home
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dns
+  source:
+    repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    path: k8s/apps/adguard-home/manifests
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true

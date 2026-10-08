@@ -1,0 +1,28 @@
+# 取り込みが終わるまで syncPolicy.automated は書かない（手順書 1-4）
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: argocd
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  sources:
+  - repoURL: https://argoproj.github.io/argo-helm
+    chart: argo-cd
+    targetRevision: 10.10.1
+    helm:
+      releaseName: argocd
+      valueFiles:
+      - $values/k8s/bootstrap/values.yaml
+  - repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    ref: values
+  - repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    path: k8s/bootstrap/manifests
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true

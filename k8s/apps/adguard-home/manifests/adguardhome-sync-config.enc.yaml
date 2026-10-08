@@ -1,0 +1,23 @@
+apiVersion: v1
+data:
+    config.yaml: ENC[AES256_GCM,data:SoFrrzDfNs9pyvYQZebboTxX/6RcqDiezNdq+MzTWBUq73iN3wZ9Tu4CPv3BlpV7VJKlrTBuR+agS81l5IJN2eupO1oAILwUVDuCOF6ASOOYFkEwKCsCXfgX71/yKguLxxnXqQcgtCOZcpC8ScWdXCZNe2+icbKppQ/Rxyn3XJIdy74D5JuN8lCi4xajmVnqjkSbMIlxhh4Ln/sz9RS7aUVkGs05GuewtSfedt4ZSGouJ8aFbGWHV6nWjuPoAoWlwV0o0ox6+4eD2LyxnFJCAplPLK95p2zHFSWyVcRVQQcr3m/C0nAlCJXMN6VuJIFMa+JoXmjDQsCH0+wIEJGZTKNeIlJ97sHrOIEC8u1dQQqiIoAB0NomJEX5rLoF+MXCVBO4u9pTlwF6ch60bGKNfssCjI4byyrk6M6lLgnP/hhycL1unqcs+8Ox7/ZMlfXPOopDt/Qk+Hi1ZKCup/7XxhuTAV574FJ201yNBNVPWOhuQz75KPHY/kd5nIttASLYXBiwDWOH87g=,iv:UoSRjKGecp73tvfpSKixSAWdAyxFqTnaE3zJy1ESz1U=,tag:FHlEUqZgyg823x6JdUf8kw==,type:str]
+kind: Secret
+metadata:
+    name: adguardhome-sync-config
+    namespace: dns
+type: Opaque
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSByY253VDR4Yzk2TnlCOXF3
+            MGhpd3IxcEhRY2I0aE5WYTNxOGU5ZzBJMjE4CndocDQreHZxOXZUVEFRVXQ4T2p0
+            OGxxRURSYzZBOEcxUU96QVFtVDdDU3MKLS0tIHFFd1J2dWkrQ1JGS2FsMlVCRzBy
+            VEl1a0lteHAxU21ISnF6dEhqeEwyWU0KuT63x1cC+kp3Xsdv59XQ6NI5y7a+DTon
+            NBQorNxUdI+XWEspWtmTCIVCuTZenAIG1cC74XUnPdbgpCyM4uk/Dw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-08T16:57:06Z"
+    mac: ENC[AES256_GCM,data:9kW4nWIKbD/4MM5AXNarlYDRtKXZ96DlyBHwx6nG/cElxCyifYLEcPBYnckNW8OZqRXe1DRBBup4khMff2RDWgU2zBkIQ5U1Aed0leJMvUmf4m4EZLoHH4veGEEI6qL0DGwfKgTAX+De5+iGQWvgQaGMuWsrl8FWxM/c+DJS+Gc=,iv:En8SHH49GPXBfOyGOAV4dDcRHuzgu1Ud2111mis7JKs=,tag:B5UMdT+pMdl41yABGsXGcg==,type:str]
+    version: 3.13.3

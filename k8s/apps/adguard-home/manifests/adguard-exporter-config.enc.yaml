@@ -1,0 +1,26 @@
+apiVersion: v1
+data:
+    ADGUARD_PASSWORDS: ENC[AES256_GCM,data:20LsD4LIDn2Frqbh9makMuWTv/J/SJsCOkT9dqP0wP5EBOcgI5Zzz0gm9i1vTZL/jpslxJn3AqqRwZWiNKU4yg==,iv:4m0gkv8SVPIUhRmC7VJ+FnSNNrTtIvvxPx4eo47aiAc=,tag:TGZDAzC7BqSC8Zf5StcOFw==,type:str]
+    ADGUARD_SERVERS: ENC[AES256_GCM,data:47e91Un2nnUopHPzLLc4KEffj6MNHwbnWBQkjDEpHWqdCN7Jfi8SOerre25BEEu6eVnTXEwWRUBbVHkpa2nhxCaMbdUWmxuBPZtxDAdX1UWVPCl3,iv:pKBXK/CcnxAkQNCWdnsIqfcAoLlr/NHxm03Fi0YPxVA=,tag:C1Dy535jAymCBgI08rsa3w==,type:str]
+    ADGUARD_USERNAMES: ENC[AES256_GCM,data:+HAweyCu/SwdZnQ5RM4ejSldUXns4wnJSECqscApHbw=,iv:DRuU+7pM07puMPOADNU+92H8gxizk3JoKDoREels4r4=,tag:Qa+AX56X7421fCNguGIjxA==,type:str]
+    INTERVAL: ENC[AES256_GCM,data:VRD9qg==,iv:ECv4/clquXk6Mjtn+qg3yVPmPxmyD6Mc6tLq/EzKH30=,tag:auN7m4hlz/d4HvTzuoDFyw==,type:str]
+kind: Secret
+metadata:
+    name: adguard-exporter-config
+    namespace: dns
+type: Opaque
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBHKytVNFJRUWk1QWdPK1Vj
+            S0l2akJUVkJxUGZNbDdsQmZBM0NUYkZ6ZG1vCkRBcCtJb2VodS81YXJkV2FYOFE5
+            UndxRTMzT3BDMjVSWCtKRE1SMU1oWmsKLS0tIERQLzBRN2dYK3U3TVZXRE1FU3Fa
+            SzZjTW5yR2d4YkRDK2JURW5nM2IyWXcKLfEdYQrMJCukjQF5LTgqFglHuZuRMu5r
+            mzTRXl6U0GnUt4yS7Osxv/h2esbd2oUJi7Fmxk8KsjdfWWtqrns3Ew==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-08T16:57:06Z"
+    mac: ENC[AES256_GCM,data:TOMvfDrM82URFSYlo/W3jcOaX/AVMwhpLzXcbSaWy0i737/n+2DgX5nPLB0juVW2HgP8zdRARf7yroFGkKa66CyWZdZzL6BIEmlNNoFnQRaU6ZaAW2Jvd/XPA0AeDOGLc166J9PYloIFBpFVcUc8ZEY+/sMZyd76oMtfILCc/0s=,iv:aTmxGrYGiGkLx8qT7jtKV16AH33Ay1ea7XTV6rXa+ds=,tag:ov3aOSRHA6CvKk/V6DoyPw==,type:str]
+    version: 3.13.3

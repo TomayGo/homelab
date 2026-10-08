@@ -1,0 +1,18 @@
+# 取り込みが終わるまで syncPolicy.automated は書かない（手順書 1-4）
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: thanos-query
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: monitoring
+  source:
+    repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    path: k8s/apps/thanos-query/manifests
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true

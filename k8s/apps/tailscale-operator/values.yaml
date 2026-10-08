@@ -1,0 +1,2 @@
+# OAuth の認証情報は manifests/operator-oauth.enc.yaml（SOPS）。oauth.clientId を書くと chart が operator-oauth を生成して上書きするので書かない
+{}
