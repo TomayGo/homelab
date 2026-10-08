@@ -1,0 +1,63 @@
+# NetBox の RQ キューとキャッシュ。永続化なし（再起動で消えてよい）
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: netbox-valkey
+  namespace: netbox
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: netbox-valkey
+  template:
+    metadata:
+      labels:
+        app: netbox-valkey
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 999
+        runAsGroup: 999
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: valkey
+          image: valkey/valkey:9.1.2-alpine3.24
+          args: ["--save", "", "--appendonly", "no"]
+          ports:
+            - name: valkey
+              containerPort: 6379
+          readinessProbe:
+            exec:
+              command: ["valkey-cli", "ping"]
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          emptyDir: {}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbox-valkey
+  namespace: netbox
+spec:
+  selector:
+    app: netbox-valkey
+  ports:
+    - name: valkey
+      port: 6379
+      targetPort: valkey

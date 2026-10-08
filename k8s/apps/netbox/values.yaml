@@ -1,0 +1,64 @@
+# netbox/netbox chart 8.3.91 (NetBox v4.7.2)
+# 2026-10-09 CT903 (NetBox v4.3.2 on LXC) から移行
+image:
+  tag: v4.7.2
+
+allowedHosts:
+  - "*"
+timeZone: Asia/Tokyo
+
+# secret_key（CT903から引き継ぎ）と api_token_peppers は SOPS 管理の Secret から
+existingSecret: netbox-config
+superuser:
+  existingSecret: netbox-superuser
+
+# media の PVC が RWO なのでローリング更新しない
+updateStrategy:
+  type: Recreate
+
+persistence:
+  enabled: true
+  storageClass: ceph-rbd
+  accessMode: ReadWriteOnce
+  size: 1Gi
+
+# DB は CNPG（manifests/cluster-netbox-db.yaml）
+postgresql:
+  enabled: false
+externalDatabase:
+  host: netbox-db-rw
+  port: 5432
+  database: netbox
+  username: netbox
+  existingSecretName: netbox-db-app
+  existingSecretKey: password
+  options:
+    sslmode: require
+
+# chart同梱の valkey は bitnami/valkey:latest なので使わない（manifests/valkey.yaml）
+valkey:
+  enabled: false
+tasksDatabase:
+  host: netbox-valkey
+  port: 6379
+  database: 0
+cachingDatabase:
+  host: netbox-valkey
+  port: 6379
+  database: 1
+
+# media の PVC が RWO なので worker を web と同じノードに置く
+worker:
+  enabled: true
+  affinity:
+    podAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+        - topologyKey: kubernetes.io/hostname
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/instance: netbox
+              app.kubernetes.io/component: netbox
+
+service:
+  type: ClusterIP
+  port: 80
