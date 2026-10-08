@@ -1,0 +1,26 @@
+apiVersion: v1
+data:
+    client_id: ENC[AES256_GCM,data:SduNCm+3kXoOYuiarg1pl16LsyL52N9D,iv:kvOLnH/mskyLeHX6nmFhC42V3py+tO+JgOevJUs9zwg=,tag:mt3i1Y0FyvZewP3fO7ivIA==,type:str]
+    client_secret: ENC[AES256_GCM,data:os3Wq0ddQ1LZPj+aP5z9uGWsFaNVvtFaqcT4Z9QXpVpHLngUxbGpXeZJXn3Ml1+RY4wfem5cC01UaMHKSZ8mC34eaGfQ8XYipgBunJoSfuuGQVMM3CSD4g==,iv:lHSV4Nr9ALt3kzuAs2asFO9UEK1nYL8sWyqDqqy4pas=,tag:XLm5zjB9W1Qih6RE8xWnPA==,type:str]
+kind: Secret
+metadata:
+    labels:
+        app.kubernetes.io/managed-by: Helm
+    name: operator-oauth
+    namespace: tailscale
+type: Opaque
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBHU2had1hLMmZ6MlVwa01P
+            R1A0Yi9qajYxaVRNNkpNaG9wdVhYeGFZdlNrCmlXM0VKeWhLV0JKTkcwWjE0d1lV
+            N0x0VlZLUEdidmZ2RCtkb25JazEyNlEKLS0tIE9EalEvcmpkOHprdThIVkQxT2hF
+            b011anhrZGlBQkh3dFlqY1k3ckNDQUkK3QLgR+UVw409rPH+nh502AohCOG2cN/E
+            nTNwf5APhy3zLVtDHX8dJuzu88KCsH5SOiQimvQnPjGmVlzztlnFlQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-08T16:57:06Z"
+    mac: ENC[AES256_GCM,data:qrPCoIlfvEsAmtJYIiQvD2mOQp8NxNMvKBCdUW7RGbEKZd0X0oQDmU67oT2OCTzNQKi2CzAtbknZEFq6KW09FSubYihdhBRs07PGTMOAUBdnZSPkk6eaYnALLBzt+y8c/BoAliK6+tpilR2dCmh4dcfQ04Ral6x0w9BaC8A7Q+8=,iv:2KJrppO53knaRDUotAO2wfD0nor2VCsCKmsUwbKdgMI=,tag:L+laKWqj1475PGoUqYn7Fg==,type:str]
+    version: 3.13.3

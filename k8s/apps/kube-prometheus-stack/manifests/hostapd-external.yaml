@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: Service
+metadata:
+  annotations:
+    tailscale.com/proxy-group: egress-pg
+    tailscale.com/tailnet-fqdn: ap.ayu-mamba.ts.net
+  name: hostapd-external
+  namespace: monitoring
+spec:
+  externalName: ts-hostapd-external-dc9z6.tailscale.svc.cluster.local
+  ports:
+  - name: metrics
+    port: 9152
+    protocol: TCP
+    targetPort: 9152
+  type: ExternalName

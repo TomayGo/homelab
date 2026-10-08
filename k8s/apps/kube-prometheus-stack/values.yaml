@@ -1,0 +1,261 @@
+additionalPrometheusRulesMap:
+  migrated-alert-rules:
+    groups:
+    - name: node
+      rules:
+      - alert: NodeDown
+        annotations:
+          description: node_exporter ({{ $labels.instance }}) is not responding
+          summary: Node {{ $labels.node }} is DOWN
+        expr: up{job="node"} == 0
+        for: 30s
+        labels:
+          severity: critical
+      - alert: HighCpuTemperature
+        annotations:
+          description: CPU temperature exceeded 90°C - thermal throttling risk
+          summary: '{{ $labels.node }} CPU temp {{ $value }}°C'
+        expr: node_hwmon_temp_celsius{chip="pci0000:00_0000:00:18_3",sensor="temp1"}
+          > 90
+        for: 30s
+        labels:
+          severity: critical
+      - alert: HighCpuTemperatureWarning
+        annotations:
+          description: CPU temperature above 80°C for over 5 minutes
+          summary: '{{ $labels.node }} CPU temp {{ $value }}°C'
+        expr: node_hwmon_temp_celsius{chip="pci0000:00_0000:00:18_3",sensor="temp1"}
+          > 80
+        for: 30s
+        labels:
+          severity: warning
+      - alert: HighCpuUsage
+        annotations:
+          summary: '{{ $labels.node }} CPU usage {{ $value | printf "%.1f" }}%'
+        expr: (1 - avg by(node) (rate(node_cpu_seconds_total{mode="idle"}[5m]))) *
+          100 > 90
+        for: 30s
+        labels:
+          severity: warning
+      - alert: HighMemoryUsage
+        annotations:
+          summary: '{{ $labels.node }} memory usage {{ $value | printf "%.1f" }}%'
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) *
+          100 > 90
+        for: 30s
+        labels:
+          severity: critical
+      - alert: HighMemoryUsageWarning
+        annotations:
+          summary: '{{ $labels.node }} memory usage {{ $value | printf "%.1f" }}%'
+        expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) *
+          100 > 85
+        for: 30s
+        labels:
+          severity: warning
+      - alert: DiskSpaceLow
+        annotations:
+          summary: '{{ $labels.node }} disk space low on {{ $labels.mountpoint }}'
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes)
+          * 100 > 90
+        for: 30s
+        labels:
+          severity: critical
+    - name: exporters
+      rules:
+      - alert: AdguardExporterDown
+        annotations:
+          summary: AdGuard Exporter is DOWN
+        expr: up{job="adguard"} == 0
+        for: 30s
+        labels:
+          severity: warning
+      - alert: CephExporterDown
+        annotations:
+          summary: Ceph Exporter is DOWN
+        expr: up{job="ceph"} == 0
+        for: 30s
+        labels:
+          severity: warning
+      - alert: FrrExporterDown
+        annotations:
+          summary: '{{ $labels.node }} FRR Exporter is DOWN'
+        expr: up{job="frr"} == 0
+        for: 30s
+        labels:
+          severity: warning
+      - alert: HostapdExporterDown
+        annotations:
+          description: Wi-Fi AP monitoring is unavailable
+          summary: hostapd exporter (VM103) is DOWN
+        expr: up{job="hostapd"} == 0
+        for: 30s
+        labels:
+          severity: critical
+    - name: hostapd
+      rules:
+      - alert: HostapdDown
+        annotations:
+          description: hostapd_up=0 on VM103 - the AP daemon is down, all bands are
+            offline
+          summary: hostapd process is not running
+        expr: hostapd_up == 0
+        for: 2m
+        labels:
+          severity: critical
+      - alert: HostapdBandDown
+        annotations:
+          description: Interface {{ $labels.interface }} is not up in AP mode - clients
+            on {{ $labels.band }} cannot associate
+          summary: Wi-Fi band {{ $labels.band }} ({{ $labels.interface }}) is down
+        expr: hostapd_interface_up == 0
+        for: 10m
+        labels:
+          severity: warning
+      - alert: WifiDriverErrors
+        annotations:
+          description: Driver {{ $labels.driver }} may be unstable
+          summary: Wi-Fi driver flush queue timeouts rising ({{ $value | printf "%.1f"
+            }}/s)
+        expr: rate(wifi_flush_queue_timeouts_total[5m]) > 1
+        for: 30s
+        labels:
+          severity: warning
+alertmanager:
+  alertmanagerSpec:
+    replicas: 2
+  config:
+    global:
+      resolve_timeout: 5m
+    receivers:
+    - name: discord
+      webhook_configs:
+      - send_resolved: true
+        url: http://discord-bridge.monitoring.svc.cluster.local:9095/
+    - name: "null"
+    route:
+      group_by:
+      - alertname
+      group_interval: 5m
+      group_wait: 30s
+      receiver: discord
+      repeat_interval: 4h
+grafana:
+  # 管理者の認証情報は manifests/grafana-admin.enc.yaml（SOPS）。未指定だと chart が乱数で生成し、Argo CD では描画のたびに変わる
+  admin:
+    existingSecret: kube-prometheus-stack-grafana
+    userKey: admin-user
+    passwordKey: admin-password
+  additionalDataSources:
+  - access: proxy
+    isDefault: true
+    name: thanos-query
+    type: prometheus
+    url: http://thanos-query.monitoring.svc.cluster.local:9090
+  envValueFrom:
+    GF_DATABASE_PASSWORD:
+      secretKeyRef:
+        key: password
+        name: grafana-db-app
+  grafana.ini:
+    database:
+      host: grafana-db-rw.monitoring.svc.cluster.local:5432
+      name: grafana
+      type: postgres
+      user: grafana
+  persistence:
+    enabled: false
+  replicas: 2
+  sidecar:
+    dashboards:
+      enabled: true
+      label: grafana_dashboard
+      labelValue: "1"
+    datasources:
+      isDefaultDatasource: false
+kubeControllerManager:
+  enabled: false
+kubeProxy:
+  enabled: false
+kubeScheduler:
+  enabled: false
+prometheus:
+  prometheusSpec:
+    additionalScrapeConfigs:
+    - job_name: adguard
+      static_configs:
+      - targets:
+        - adguard-exporter.dns.svc.cluster.local:9618
+    - job_name: pve
+      metrics_path: /pve
+      params:
+        cluster:
+        - "1"
+        module:
+        - default
+        node:
+        - "1"
+        target:
+        - localhost
+      static_configs:
+      - targets:
+        - 192.168.1.79:9221
+    - job_name: node
+      scrape_interval: 23s
+      static_configs:
+      - labels:
+          node: pve-1
+        targets:
+        - 192.168.1.79:9100
+      - labels:
+          node: pve-2
+        targets:
+        - 192.168.1.80:9100
+      - labels:
+          node: pve-3
+        targets:
+        - 192.168.1.81:9100
+    - honor_labels: true
+      job_name: ceph
+      static_configs:
+      - targets:
+        - 192.168.1.79:9283
+        - 192.168.1.80:9283
+        - 192.168.1.81:9283
+    - job_name: frr
+      static_configs:
+      - labels:
+          node: pve-1
+        targets:
+        - 192.168.1.79:9342
+      - labels:
+          node: pve-2
+        targets:
+        - 192.168.1.80:9342
+      - labels:
+          node: pve-3
+        targets:
+        - 192.168.1.81:9342
+    - job_name: hostapd
+      static_configs:
+      - targets:
+        - hostapd-external.monitoring.svc.cluster.local:9152
+    replicas: 2
+    retention: 15d
+    retentionSize: 18GB
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 20Gi
+          storageClassName: ceph-rbd
+    thanos:
+      image: quay.io/thanos/thanos:v0.42.0
+  service:
+    additionalPorts:
+    - name: grpc
+      port: 10901
+      targetPort: 10901

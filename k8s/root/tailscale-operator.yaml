@@ -1,0 +1,28 @@
+# 取り込みが終わるまで syncPolicy.automated は書かない（手順書 1-4）
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tailscale-operator
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: tailscale
+  sources:
+  - repoURL: https://pkgs.tailscale.com/helmcharts
+    chart: tailscale-operator
+    targetRevision: 1.98.9
+    helm:
+      releaseName: tailscale-operator
+      valueFiles:
+      - $values/k8s/apps/tailscale-operator/values.yaml
+  - repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    ref: values
+  - repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    path: k8s/apps/tailscale-operator/manifests
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true

@@ -1,0 +1,38 @@
+# argo/argo-cd chart 10.10.1（Argo CD v3.5.4）
+# 初回は手で helm install し、以後は k8s/root/argocd.yaml の Application として自己管理する
+dex:
+  enabled: false
+
+configs:
+  params:
+    # TLS は終端しない。tailnet 経由（manifests/service-tailnet.yaml）で http のみ
+    server.insecure: true
+  cm:
+    # KSOPS（kustomize の exec プラグイン）を使うため
+    kustomize.buildOptions: "--enable-alpha-plugins --enable-exec"
+
+repoServer:
+  env:
+    - name: SOPS_AGE_KEY_FILE
+      value: /sops-age/keys.txt
+  volumes:
+    - name: custom-tools
+      emptyDir: {}
+    - name: sops-age
+      secret:
+        secretName: sops-age
+  initContainers:
+    - name: install-ksops
+      image: viaductoss/ksops:v4.5.1
+      # kustomize は Argo CD 同梱のものを使い、ksops だけを追加する
+      command: ["/usr/local/bin/ksops", "install", "/custom-tools"]
+      volumeMounts:
+        - mountPath: /custom-tools
+          name: custom-tools
+  volumeMounts:
+    - mountPath: /usr/local/bin/ksops
+      name: custom-tools
+      subPath: ksops
+    - mountPath: /sops-age
+      name: sops-age
+      readOnly: true

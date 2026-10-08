@@ -1,0 +1,158 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ai
+  labels:
+    # イメージが User=0:0 で HOME=/root のため非root化は不可。baseline なら root は許容される。
+    pod-security.kubernetes.io/enforce: baseline
+    pod-security.kubernetes.io/warn: baseline
+    pod-security.kubernetes.io/audit: baseline
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openwebui-data
+  namespace: ai
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: ceph-rbd
+  resources:
+    requests:
+      storage: 20Gi
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: openwebui
+  namespace: ai
+spec:
+  replicas: 1
+  # RWO PVC + SQLite なので新旧Podの同時起動は不可
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: openwebui
+  template:
+    metadata:
+      labels:
+        app: openwebui
+    spec:
+      securityContext:
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: openwebui
+          image: ghcr.io/open-webui/open-webui:v0.11.4
+          imagePullPolicy: IfNotPresent
+          securityContext:
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop: ["ALL"]
+          ports:
+            - name: http
+              containerPort: 8080
+              protocol: TCP
+          env:
+            # false = 毎起動このenvが真実。true(既定)だと初回起動時にDBへ焼かれ、
+            # 以後マニフェストを直しても効かなくなる（Open WebUI 定番の罠）
+            - name: ENABLE_PERSISTENT_CONFIG
+              value: "false"
+            # バックエンド: Windows機の LM Studio / Strata (どちらもOpenAI互換) を tailnet egress 経由で
+            # 複数接続は複数形envを ; 区切りで。URLとKEYは同じ順番で対応させる。
+            # キーはSecretから個別envに入れ、$(VAR) 展開で連結する（参照先は先に定義しておくこと）
+            - name: LMSTUDIO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openwebui
+                  key: openai-api-key
+            - name: STRATA_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openwebui
+                  key: strata-api-key
+            - name: OPENAI_API_BASE_URLS
+              value: "http://lmstudio.ai.svc.cluster.local:1234/v1;http://strata.ai.svc.cluster.local:8080/v1;http://llmjp-proxy.ai.svc.cluster.local:8000/v1"
+            - name: OPENAI_API_KEYS
+              value: "$(LMSTUDIO_API_KEY);$(STRATA_API_KEY);none"
+            # Ollama は使わない（未設定だと /ollama を叩きに行って起動が遅くなる）
+            - name: ENABLE_OLLAMA_API
+              value: "false"
+            - name: WEBUI_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: openwebui
+                  key: webui-secret-key
+            - name: WEBUI_URL
+              value: "http://owui.home"
+          volumeMounts:
+            - name: data
+              mountPath: /app/backend/data
+          resources:
+            requests:
+              cpu: 200m
+              memory: 1Gi
+            limits:
+              cpu: "2"
+              memory: 4Gi
+          # 初回起動は RAG 用 embedding モデル(all-MiniLM-L6-v2)をDLするので余裕を持たせる
+          startupProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 60
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 10
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            periodSeconds: 20
+            failureThreshold: 6
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: openwebui-data
+---
+# LAN 側 VIP (MetalLB lan-pool の空き .93)
+apiVersion: v1
+kind: Service
+metadata:
+  name: openwebui-lan
+  namespace: ai
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 192.168.1.93
+  selector:
+    app: openwebui
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
+---
+# tailnet 側。ClusterIP + expose アノテーションが唯一動く経路
+# (ProxyGroup ingress / loadBalancerClass は既知の上流バグで不可)
+apiVersion: v1
+kind: Service
+metadata:
+  name: openwebui-tailnet
+  namespace: ai
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: openwebui
+spec:
+  type: ClusterIP
+  selector:
+    app: openwebui
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

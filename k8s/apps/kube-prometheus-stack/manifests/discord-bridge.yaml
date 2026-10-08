@@ -1,0 +1,159 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: discord-bridge
+  namespace: monitoring
+spec:
+  progressDeadlineSeconds: 600
+  replicas: 2
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: discord-bridge
+  strategy:
+    rollingUpdate:
+      maxSurge: 25%
+      maxUnavailable: 25%
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        kubectl.kubernetes.io/restartedAt: '2026-09-08T16:32:18+09:00'
+      labels:
+        app: discord-bridge
+    spec:
+      containers:
+      - command:
+        - python3
+        - /scripts/bridge.py
+        env:
+        - name: PYTHONUNBUFFERED
+          value: '1'
+        envFrom:
+        - secretRef:
+            name: discord-bridge-config
+        image: python:3.13-slim
+        imagePullPolicy: IfNotPresent
+        name: bridge
+        ports:
+        - containerPort: 9095
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /scripts
+          name: script
+      dnsPolicy: ClusterFirst
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - configMap:
+          defaultMode: 420
+          name: discord-bridge-script
+        name: script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: discord-bridge
+  namespace: monitoring
+spec:
+  ports:
+  - port: 9095
+    protocol: TCP
+    targetPort: 9095
+  selector:
+    app: discord-bridge
+  type: ClusterIP
+---
+apiVersion: v1
+data:
+  bridge.py: |
+    #!/usr/bin/env python3
+    from http.server import HTTPServer, BaseHTTPRequestHandler
+    import json
+    import os
+    import urllib.request
+    import ssl
+
+    DISCORD_WEBHOOK = os.environ["DISCORD_WEBHOOK"]
+    THREAD_ID = os.environ["THREAD_ID"]
+    MENTION = os.environ.get("MENTION", "")
+
+    SEVERITY_COLORS = {
+        "critical": 0xFF0000,
+        "warning": 0xFFA500,
+        "info": 0x3498DB,
+    }
+
+    def post_discord(content, embeds):
+        url = f"{DISCORD_WEBHOOK}?thread_id={THREAD_ID}"
+        payload = json.dumps({
+            "content": content,
+            "embeds": embeds,
+            "allowed_mentions": {"parse": ["users", "roles"]},
+        }).encode("utf-8")
+        req = urllib.request.Request(
+            url, data=payload,
+            headers={"Content-Type": "application/json", "User-Agent": "AlertBridge/1.0"},
+            method="POST",
+        )
+        try:
+            urllib.request.urlopen(req, context=ssl.create_default_context())
+        except Exception as e:
+            print(f"Discord post failed: {e}")
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_POST(self):
+            body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+            for alert in body.get("alerts", []):
+                status = alert["status"]
+                labels = alert.get("labels", {})
+                annotations = alert.get("annotations", {})
+                severity = labels.get("severity", "warning")
+                alertname = labels.get("alertname", "Unknown")
+
+                if status == "firing":
+                    title = f"\U0001F6A8 FIRING: {alertname}"
+                else:
+                    title = f"✅ RESOLVED: {alertname}"
+
+                desc_parts = []
+                if annotations.get("summary"):
+                    desc_parts.append(annotations["summary"])
+                if annotations.get("description"):
+                    desc_parts.append(annotations["description"])
+                desc = "\n".join(desc_parts) or "No description"
+
+                label_str = ", ".join(
+                    f"`{k}`=`{v}`" for k, v in labels.items()
+                    if k not in ("alertname", "severity")
+                )
+
+                embed = {
+                    "title": title,
+                    "description": desc,
+                    "color": SEVERITY_COLORS.get(severity, 0x808080),
+                    "fields": [],
+                }
+                if label_str:
+                    embed["fields"].append({"name": "Labels", "value": label_str, "inline": False})
+                embed["fields"].append({"name": "Severity", "value": severity.upper(), "inline": True})
+
+                content = MENTION if status == "firing" else ""
+                post_discord(content, [embed])
+
+            self.send_response(200)
+            self.end_headers()
+
+        def log_message(self, fmt, *args):
+            print(f"[bridge] {fmt % args}")
+
+    HTTPServer(("0.0.0.0", 9095), Handler).serve_forever()
+kind: ConfigMap
+metadata:
+  name: discord-bridge-script
+  namespace: monitoring

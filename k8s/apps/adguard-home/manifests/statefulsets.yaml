@@ -1,0 +1,213 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: agh-primary
+  namespace: dns
+spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: agh
+      role: primary
+  serviceName: agh-primary
+  template:
+    metadata:
+      labels:
+        app: agh
+        role: primary
+    spec:
+      containers:
+      - args:
+        - --no-check-update
+        - -c
+        - /opt/adguardhome/conf/AdGuardHome.yaml
+        - -w
+        - /opt/adguardhome/work
+        image: adguard/adguardhome:v0.107.78
+        imagePullPolicy: IfNotPresent
+        name: adguardhome
+        ports:
+        - containerPort: 53
+          name: dns-udp
+          protocol: UDP
+        - containerPort: 53
+          name: dns-tcp
+          protocol: TCP
+        - containerPort: 80
+          name: web
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/adguardhome/conf
+          name: conf
+        - mountPath: /opt/adguardhome/work
+          name: work
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - test -f /conf/AdGuardHome.yaml || cp /seed/AdGuardHome.yaml /conf/AdGuardHome.yaml
+        image: busybox:1.37
+        imagePullPolicy: IfNotPresent
+        name: seed-config
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /conf
+          name: conf
+        - mountPath: /seed
+          name: seed
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: seed
+        secret:
+          defaultMode: 420
+          secretName: agh-seed-config
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: conf
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 256Mi
+      storageClassName: ceph-rbd
+      volumeMode: Filesystem
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: work
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi
+      storageClassName: ceph-rbd
+      volumeMode: Filesystem
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: agh-replica
+  namespace: dns
+spec:
+  persistentVolumeClaimRetentionPolicy:
+    whenDeleted: Retain
+    whenScaled: Retain
+  podManagementPolicy: OrderedReady
+  replicas: 1
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: agh
+      role: replica
+  serviceName: agh-replica
+  template:
+    metadata:
+      labels:
+        app: agh
+        role: replica
+    spec:
+      containers:
+      - args:
+        - --no-check-update
+        - -c
+        - /opt/adguardhome/conf/AdGuardHome.yaml
+        - -w
+        - /opt/adguardhome/work
+        image: adguard/adguardhome:v0.107.78
+        imagePullPolicy: IfNotPresent
+        name: adguardhome
+        ports:
+        - containerPort: 53
+          name: dns-udp
+          protocol: UDP
+        - containerPort: 53
+          name: dns-tcp
+          protocol: TCP
+        - containerPort: 80
+          name: web
+          protocol: TCP
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /opt/adguardhome/conf
+          name: conf
+        - mountPath: /opt/adguardhome/work
+          name: work
+      dnsPolicy: ClusterFirst
+      initContainers:
+      - command:
+        - sh
+        - -c
+        - test -f /conf/AdGuardHome.yaml || cp /seed/AdGuardHome.yaml /conf/AdGuardHome.yaml
+        image: busybox:1.37
+        imagePullPolicy: IfNotPresent
+        name: seed-config
+        resources: {}
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /conf
+          name: conf
+        - mountPath: /seed
+          name: seed
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: seed
+        secret:
+          defaultMode: 420
+          secretName: agh-seed-config
+  updateStrategy:
+    rollingUpdate:
+      partition: 0
+    type: RollingUpdate
+  volumeClaimTemplates:
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: conf
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 256Mi
+      storageClassName: ceph-rbd
+      volumeMode: Filesystem
+  - apiVersion: v1
+    kind: PersistentVolumeClaim
+    metadata:
+      name: work
+    spec:
+      accessModes:
+      - ReadWriteOnce
+      resources:
+        requests:
+          storage: 2Gi
+      storageClassName: ceph-rbd
+      volumeMode: Filesystem

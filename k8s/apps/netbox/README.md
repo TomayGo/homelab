@@ -8,12 +8,4 @@
 - 公開: tailnet の `netbox.ayu-mamba.ts.net`（`manifests/service-tailnet.yaml`）
 - Secret: `manifests/netbox-config.enc.yaml`（secret_key は CT903 から引き継ぎ、api_token_peppers は新規）、`manifests/netbox-superuser.enc.yaml`（admin は既存なので起動時の作成はスキップされる）
 
-Phase 1 まではこう適用している。
-
-```sh
-kubectl apply -f manifests/namespace.yaml
-sops -d manifests/netbox-config.enc.yaml | kubectl apply -f -
-sops -d manifests/netbox-superuser.enc.yaml | kubectl apply -f -
-kubectl apply -k manifests/
-helm upgrade --install netbox netbox/netbox --version 8.3.91 -n netbox -f values.yaml
-```
+Phase 1 以降は Argo CD の Application `netbox`（`k8s/root/netbox.yaml`）で管理する。Secret は `manifests/secret-generator.yaml`（KSOPS）で復号される。

@@ -1,0 +1,33 @@
+# 取り込みが終わるまで syncPolicy.automated は書かない（手順書 1-4）
+# lmstudio/strata の externalName は Tailscale operator が placeholder から書き換えるので比較しない
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: openwebui
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai
+  source:
+    repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    path: k8s/apps/openwebui/manifests
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true
+    - RespectIgnoreDifferences=true
+  ignoreDifferences:
+  - group: ''
+    kind: Service
+    name: lmstudio
+    namespace: ai
+    jsonPointers:
+    - /spec/externalName
+  - group: ''
+    kind: Service
+    name: strata
+    namespace: ai
+    jsonPointers:
+    - /spec/externalName

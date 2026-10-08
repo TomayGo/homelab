@@ -1,0 +1,20 @@
+# Windows機 (desktop-6vkqmqj) 上の LM Studio へ tailnet 経由で出ていく egress Service。
+# LAN IP 直打ち (192.168.1.14) を避ける理由: このPCはDHCPで、過去に .19 -> .14 と実際に動いている。
+# 既存の dns/agh-lxc-external と同じ ProxyGroup egress パターン。
+# 解決名: lmstudio.ai.svc.cluster.local:1234
+apiVersion: v1
+kind: Service
+metadata:
+  name: lmstudio
+  namespace: ai
+  annotations:
+    tailscale.com/tailnet-fqdn: desktop-6vkqmqj.ayu-mamba.ts.net
+    tailscale.com/proxy-group: egress-pg
+spec:
+  type: ExternalName
+  externalName: placeholder.tailscale.svc.cluster.local # operator が上書きする
+  ports:
+    - name: api
+      port: 1234
+      targetPort: 1234
+      protocol: TCP

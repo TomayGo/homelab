@@ -1,0 +1,30 @@
+apiVersion: v1
+data:
+    admin-password: ENC[AES256_GCM,data:GJs3wLC/R7Nhv+oBmhPbNNfOIOXWtRlrWH40HoalFS8l6QTc1uqsx85DIvY0gT9yLQofymRyceI=,iv:ocWmZLsBn3p40Q+6YkOAv1hWmD1qu8+M+MLQY4+04aw=,tag:dSkhKk/njZO51Ac9Hj84UA==,type:str]
+    admin-user: ENC[AES256_GCM,data:M8kz03KqHcs=,iv:kvnWZgdn0qh/UKZFV+h7qoxzaS7GQjfpj03e1zKUfrg=,tag:ZKsXFtbLCfz6pR9Mam29gA==,type:str]
+    ldap-toml: ""
+kind: Secret
+metadata:
+    labels:
+        app.kubernetes.io/component: admin-secret
+        app.kubernetes.io/instance: kube-prometheus-stack
+        app.kubernetes.io/name: grafana
+        app.kubernetes.io/version: 13.1.0
+    name: kube-prometheus-stack-grafana
+    namespace: monitoring
+type: Opaque
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBUbjUyc2lJM1FGK0xPSG9T
+            WHpSTFhmdVlpREJ0ZmpGSmEwMXcyVGlvNFJRCjM2cFVrVlhLK1pKdDlha1VYbFdV
+            OVdDZFpOTTVWSDU5ZURVUEFBTW1xVUEKLS0tIEZQTWdHSlZBcUpIRm5hNys2Vm1s
+            U0F4RGNkNnA5djk3NnNQMVB5Z2oybG8K5ELpeNdO1bF2nCRXcg99cexdUazXJtzu
+            xz802F3TIVicG66+EstZOFlLxEAIozQmZhwKfke/ZgCEJ4aTCXfpuA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-08T16:57:39Z"
+    mac: ENC[AES256_GCM,data:8Nr5AOOswhIptFMk6UcM3DZmQ48q4WEDF30YJ0EYqjTvXy6ePTVYhrasMlm5hsr3J+sle1xdY3ISyVPYzJAMDkUas8If0nLE15vWLzBfYMJ21uRL/Rr0vNI25hUwt2rucI3JBpqGBhC7ugWH9ZxA4dD5DwYqFhYyuEr87T/jVpg=,iv:MebYaoBGGqTewRbKGbsD9hlOEQwFDvZVa7dVdn7N6bc=,tag:VIkC6XQKIJbwQgo/GJJztg==,type:str]
+    version: 3.13.3

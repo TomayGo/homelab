@@ -1,0 +1,59 @@
+# LLM-jp-4.1 thinking 用の Harmony 変換プロキシ（詳細は proxy.py 冒頭）。
+# Open WebUI → llmjp-proxy.ai.svc:8000/v1 → LM Studio /v1/completions (raw)
+# 適用は kustomize 経由: kubectl apply -k /root/talos-cluster/openwebui/llmjp-proxy
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: llmjp-proxy
+  namespace: ai
+spec:
+  replicas: 1
+  selector:
+    matchLabels: {app: llmjp-proxy}
+  template:
+    metadata:
+      labels: {app: llmjp-proxy}
+    spec:
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65534
+        seccompProfile: {type: RuntimeDefault}
+      containers:
+        - name: proxy
+          image: python:3.13-alpine3.22
+          command: ["python3", "-u", "/app/proxy.py"]
+          env:
+            - {name: UPSTREAM, value: "http://lmstudio.ai.svc.cluster.local:1234"}
+            # Open WebUI に見せるID=LM Studio 側のID を ; 区切り
+            - name: MODELS
+              value: "llm-jp-4.1-32b-a3b-thinking-proxy=llm-jp-4.1-32b-a3b-thinking;llm-jp-4.1-32b-a3b-thinking-ablitrated-proxy=llm-jp-4.1-32b-a3b-thinking-ablitrated"
+            - {name: PORT, value: "8000"}
+          ports:
+            - {name: http, containerPort: 8000}
+          readinessProbe:
+            httpGet: {path: /healthz, port: http}
+          livenessProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 30
+          resources:
+            requests: {cpu: 10m, memory: 32Mi}
+            limits: {memory: 128Mi}
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: app, mountPath: /app}
+      volumes:
+        - name: app
+          configMap: {name: llmjp-proxy}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: llmjp-proxy
+  namespace: ai
+spec:
+  selector: {app: llmjp-proxy}
+  ports:
+    - {name: http, port: 8000, targetPort: http}

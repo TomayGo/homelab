@@ -1,0 +1,25 @@
+apiVersion: v1
+data:
+    DISCORD_WEBHOOK: ENC[AES256_GCM,data:U7eM65J2and3J8D2RkPE+hqfmXl4eHtgVBfOokOscoZWc12uFsttLxIBrHli0f9/rZfC2skR527jChELixCA/qI6LKSbFj3iethvT2yYzTq4UDmItvm2OYWd4eRJfqo0m5x7PO6nQ2azZvyhJvCdD6oy2rc/we7XHdx4v3kFG/2fTm5pLeeckfbofIUYYR70xoXAeMMwdnKTyeMu9PCxwnZkHTw=,iv:qUZ8CSiqKXkGXU2KIuSOd4pq5dp56cdUTNgvYOn4sYk=,tag:td95yqnw8eE44VTtrHmh3A==,type:str]
+    MENTION: ENC[AES256_GCM,data:3T1Fw3Fg6wKC0sFdY1ZiX3SwxlIyVwTqniL/gg==,iv:nBWwBAamSq29shnND7RApHTflZOVZhM7Vw4ScFo5ngQ=,tag:U0271Cmp472MLcP7hkRZKg==,type:str]
+    THREAD_ID: ENC[AES256_GCM,data:OO2UMAizMSFfrQb/6V21JfQ6fc5Qdyoox+lZgw==,iv:6sMD7Je9c4nP349nsaqJC2aZgJUlGqnMCRpHFpJfnz4=,tag:Z22Zl5V4+Bb7j3Rn7dWFMg==,type:str]
+kind: Secret
+metadata:
+    name: discord-bridge-config
+    namespace: monitoring
+type: Opaque
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSB3T05RWFkzS3ByaGxoL1pZ
+            UEhONTdDNHU3RVFOTFdBU1ZERDdrY1Y4UjJFCk1uRjlld1kxdUhHcHQ2MisyRGQz
+            V0tmRmYybG9KOVI1UWlPOW5GRkZCQTgKLS0tIGNZK3o4dTAzeEc0ajFVcXozRDhW
+            OHdFeVVTOWN6UkE5QXZ6bUMwcTdUNXMKUo8jq+bv7HLfPfeangNLMbXTJxuHa0fh
+            xZcc8E3M1VlGDXG3L6HAyukzN22UE2FSjSp9ALdqesrhKgF4lJGgYw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-08T16:57:06Z"
+    mac: ENC[AES256_GCM,data:aUNZf7mKTYzkw2yzYDOsTggLWTPBfEKNYCwcqlDm/W1wNIt/jNyDoAwu5AM9lKwAyv8IYfflzC9D47ZeR32IMqaJ00mrW31bl6lWm89ra5a3HwoqpG63n2eY59F3KAa+qMqQbTFRz3tkBMqREk9h8ZYt2R2T1wvwCPYsfzNb28c=,iv:Xy8qwI7NFhsJ+jVDhzRXeMjXR5BR/LaHC+mU5fXGQ0s=,tag:rQ8nDieRi2UhlDHfRtJCBQ==,type:str]
+    version: 3.13.3
