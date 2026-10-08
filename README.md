@@ -19,3 +19,9 @@ PVE 3ノードクラスタ（pve-1/2/3）と、その上のTalos k8sクラスタ
 - GitHubの認証情報
 
 平文のSecretはコミットしない。暗号化するファイル名は `k8s/**/*.enc.yaml`、`ansible/**/*.sops.yaml`、`tofu/**/*.enc.yaml`。
+
+## 文書
+
+- [docs/manual-ops.md](docs/manual-ops.md)：コードで管理しないもの（`/etc/pve`、Ceph、クラスタ参加、アップグレード、パススルー）の手順
+- [docs/recovery.md](docs/recovery.md)：全損時の復旧手順
+- `docs/phase*.md`：移行の各フェーズの記録
