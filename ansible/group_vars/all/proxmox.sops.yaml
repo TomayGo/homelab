@@ -1,0 +1,19 @@
+proxmox_api_host: ENC[AES256_GCM,data:Qif+pORV7t0adL/x,iv:DjWmmU1mcrlhxWNk/NdeRVIlNCjxyQAbJhh/FcKh1OQ=,tag:GQ4J35+H+++QlDsdTJ+Rwg==,type:str]
+proxmox_api_user: ENC[AES256_GCM,data:LRMR99z8r2bHvVSZr07C,iv:Alwx8+SU6vsL+j/ICIZUb947TW60Z7+SZGpdYSQF99Q=,tag:KHbtKc4A87MXrCYr/ne7yg==,type:str]
+proxmox_api_token_id: ENC[AES256_GCM,data:XJvZCrAjyA==,iv:nYhvcKXKvc3RptME8HhOhMPyGRJB9Gd7f23m9G75eWY=,tag:ko8YAr4NICgAihs6PZ8L5g==,type:str]
+proxmox_api_token_secret: ENC[AES256_GCM,data:3bQLL24yxvgwBTY4EaNT61YvvsOnJBpUO6AjKEKk5vVrvCWQ,iv:FZ8zOMF7xbI03ckXkdvSk+GV3GqDk6wYMnlFKYT3taA=,tag:3q40HdCFXlGdk6HQFnwTXQ==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBPK2hWcUFhK2pyc3BoWE85
+            T2tleGZhRUMrRFBzNzhwVHlvSnU3dFVRWndVClo0RUgwZjgrdU41cCtoTnJHZlZC
+            UzBMMit5Z0o0K1UwL25TeXFBNDhvZUEKLS0tIGRxRS9UZnNqL2dZcnB0YXFQRlEy
+            aERVWTdPdUwyRHVjTXJYZCtVOTlZVmsKfrvgsG2NuhUH42PqampEftmXpgPlll7y
+            BiV6HanFUk9877O//8/Kw/7wG77o4GOgUGRopeK7RKG3mlhqxIjBhQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    lastmodified: "2026-10-08T16:08:36Z"
+    mac: ENC[AES256_GCM,data:rVuYvEz8xbQm/RClDNK1XQbF8xLW3XwMvkR/r6zeNx3zZUmPxCc+nriDEs8iQxe72YTr3eoJCO/FJukUAqZAqrzcnwDHIg+3/zE8ddghkmfqBn8SHLOHsNWCjgwD3KK5x0J3ny6RRV4Vjc04A8ymkJ6LWaoHq/Yc2WXJKMNVbOA=,iv:4iVbavKleVK/+hg0M2p4xeo00IR0RiSXvWNJYnjqJe0=,tag:Ux8N8zPtk792VrbsTbytIQ==,type:str]
+    unencrypted_suffix: _unencrypted
+    version: 3.13.3
