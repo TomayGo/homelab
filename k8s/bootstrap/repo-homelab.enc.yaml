@@ -1,0 +1,27 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: repo-homelab
+    namespace: argocd
+    labels:
+        argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+    type: ENC[AES256_GCM,data:ordV,iv:2KzMhxqYir36d7DhScFsCFr4kFRW5ssztLDQcpQymPs=,tag:SMowHXBO5SZB6EN6i26YPw==,type:str]
+    url: ENC[AES256_GCM,data:HlvQ4aAv4B34n+Zp+BautWaCDrQX9hiHyD8jcHg/DV4lMA==,iv:+ch4wmImwTn/S4tUo8K0wAugAisl5kn72IQ0pVr5aXQ=,tag:dvfZ2I0q6yqHPtnGyySTyA==,type:str]
+    sshPrivateKey: ENC[AES256_GCM,data:aNSK6ZehnGIxfIIGQJsUueBSELtMAHNWQU5J0BBW8b85/upkTxWxCQW4SKXrAd6sDnpHoW2LsrSWcxzrxc+D1YAnBqmGOkCvtCPmtTcwwQvCDbFsdEmBw5ervz001377QatuzgSou6xVb3z/+5yez4TMEtQmGygZALTePIWkPpDCZrj7oB+pG+Z/CyOdPkijvtovccy7QHhf8qdHeeSYCdBHqJ2lyJQzIrfO0VpbTrS8U/SQRAe8W++aOuQzwWUi02CU6v+WEksKjNp4GvNQy0oWBS1QM0ow7AESKG08QyQKuS+M0rgx7Xx7O0r6WT5Q00+r+K9h/YQ6lAoZbYDvKS8RDSF9NX11lSmpPuMo6idl9z7QEDZQZ+D9RiBkbGB7kTIB592bfqrDtRH7kBlyRihy9P3CfVBwtIWn4pDY50S2d/bffBHUXheLtB+mXAaMvPODymicDU5CA3CI+2HoSe/SWSU+H5GkQ0w6VwgVq5teqiYxIs9JxlvwqPgk51lKeqijkkP6kjH3hVfNTcosry1imjXcd4iOnnkTY9b6Fi9avfQWyulkLNBp+PxRLSUR,iv:ZCpE7gta3n5mXhtxLTm+uAnju6rkc7DJWAYd2afWVAQ=,tag:gMMj1azgNF2EYJnQM+jFCg==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBwM2R1WjhMZXlEYnJ4c3VN
+            V2tvZGFUNEgvTmhvUE9SL3BXN2o2b284MGxvClZqVjhiM0hmVjZUQVpvdTVMakJu
+            L2NXVmx1TFNCeFNlbkNVWW9lOTUxWXcKLS0tIEt4MVFEVGxUaDJqMHdTUGZjSEJu
+            MVVnUFpzWStKTXVsVm9neEdlMkJGVEEKTKOTsL4QKbgbWO2KlO5QEii7rP2qcPdG
+            b5xf37OApgiOOJD011NF3PIqt0u/z+jeJp5hwlNiu50ld+rMVZugQg==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-08T16:10:55Z"
+    mac: ENC[AES256_GCM,data:IzmsJZkxWKrdqz8onosvHqi8N2l/uNnQe0Jt2PvcacFjrCPP49uejw5aGwZQg4Md8QGHLc0MchFad5wlfqBWSSOgOy7GFoakI6oFc6JSnCCs9rorxiyfYGTrgRDgOxgfBNIOczSsR/paqwH/4PSw5R1tKl+QW8uIg1LmwXfdet4=,iv:HQX1cex3Ul5VdFP0Lmi/6q7eCxHKbT9cmPOY2qoLjWs=,tag:4pcUxQ7X8P92uN7jy0FsAQ==,type:str]
+    version: 3.13.3
