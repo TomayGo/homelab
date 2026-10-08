@@ -1,0 +1,22 @@
+# pve-3
+lan_address: 192.168.1.81/24
+tb0_address: 10.0.4.10/30
+tb1_address: 10.0.4.6/30
+# dummy0 のアドレス。OSPF の router-id も兼ねる
+mesh_loopback: 10.0.4.103
+vmbr9_address: 10.10.3.1/28
+manual_ifaces:
+  - nic2
+  - wlp4s0
+# 他ノードの loopback への ECMP（table 100）
+mesh_ecmp_routes:
+  - dest: 10.0.4.101
+    nexthops:
+      - { via: 10.0.4.5, dev: tb1 }
+      - { via: 10.0.4.9, dev: tb0 }
+  - dest: 10.0.4.102
+    nexthops:
+      - { via: 10.0.4.9, dev: tb0 }
+      - { via: 10.0.4.5, dev: tb1 }
+# Thunderbolt NHI の PCI バス番号（IRQ 固定用）
+tb_nhi_pci_bus: "ca"

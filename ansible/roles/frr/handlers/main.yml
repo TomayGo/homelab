@@ -1,0 +1,10 @@
+- name: Reload frr
+  ansible.builtin.systemd_service:
+    name: frr
+    state: reloaded
+
+# daemons の変更は reload では反映されない
+- name: Restart frr
+  ansible.builtin.systemd_service:
+    name: frr
+    state: restarted

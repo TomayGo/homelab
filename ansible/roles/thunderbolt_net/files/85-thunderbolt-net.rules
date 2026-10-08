@@ -1,0 +1,2 @@
+SUBSYSTEM=="net", ACTION=="add", DEVPATH=="*/domain0/*/net/*", NAME="tb0"
+SUBSYSTEM=="net", ACTION=="add", DEVPATH=="*/domain1/*/net/*", NAME="tb1"

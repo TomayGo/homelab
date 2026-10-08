@@ -1,0 +1,10 @@
+[Unit]
+Description=Thunderbolt ECMP Route Setup
+After=network.target thunderbolt-irq-affinity.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/thunderbolt-ecmp-setup.sh
+
+[Install]
+WantedBy=multi-user.target

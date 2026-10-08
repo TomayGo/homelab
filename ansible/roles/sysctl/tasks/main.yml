@@ -1,0 +1,8 @@
+- name: /etc/sysctl.d/90-usb4-ecmp.conf
+  ansible.builtin.copy:
+    src: 90-usb4-ecmp.conf
+    dest: /etc/sysctl.d/90-usb4-ecmp.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Apply sysctl

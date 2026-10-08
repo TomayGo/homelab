@@ -1,0 +1,31 @@
+- name: prometheus-pve-exporter in /opt/pve-exporter
+  ansible.builtin.pip:
+    name: "prometheus-pve-exporter=={{ pve_exporter_version }}"
+    virtualenv: /opt/pve-exporter
+    virtualenv_command: python3 -m venv
+  notify: Restart prometheus-pve-exporter
+
+- name: /etc/prometheus/pve.yml
+  ansible.builtin.template:
+    src: pve.yml.j2
+    dest: /etc/prometheus/pve.yml
+    owner: root
+    group: root
+    mode: "0644"
+  no_log: true
+  notify: Restart prometheus-pve-exporter
+
+- name: /etc/systemd/system/prometheus-pve-exporter.service
+  ansible.builtin.copy:
+    src: prometheus-pve-exporter.service
+    dest: /etc/systemd/system/prometheus-pve-exporter.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart prometheus-pve-exporter
+
+- name: prometheus-pve-exporter is enabled and running
+  ansible.builtin.systemd_service:
+    name: prometheus-pve-exporter
+    enabled: true
+    state: started

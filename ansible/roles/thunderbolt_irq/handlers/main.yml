@@ -1,0 +1,5 @@
+- name: Rerun thunderbolt-irq-affinity
+  ansible.builtin.systemd_service:
+    name: thunderbolt-irq-affinity
+    state: restarted
+    daemon_reload: true

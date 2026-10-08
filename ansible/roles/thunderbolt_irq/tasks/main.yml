@@ -1,0 +1,22 @@
+- name: /usr/local/bin/thunderbolt-irq-affinity.sh
+  ansible.builtin.template:
+    src: thunderbolt-irq-affinity.sh.j2
+    dest: /usr/local/bin/thunderbolt-irq-affinity.sh
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Rerun thunderbolt-irq-affinity
+
+- name: /etc/systemd/system/thunderbolt-irq-affinity.service
+  ansible.builtin.copy:
+    src: thunderbolt-irq-affinity.service
+    dest: /etc/systemd/system/thunderbolt-irq-affinity.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Rerun thunderbolt-irq-affinity
+
+- name: thunderbolt-irq-affinity.service is enabled
+  ansible.builtin.systemd_service:
+    name: thunderbolt-irq-affinity
+    enabled: true

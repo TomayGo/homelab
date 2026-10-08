@@ -1,0 +1,1 @@
+ACTION=="move", SUBSYSTEM=="net", KERNEL=="tb*", RUN+="/usr/local/bin/thunderbolt-net-recover.sh %k"

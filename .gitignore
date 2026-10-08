@@ -27,3 +27,4 @@ ansible/collected/
 # エディタ等
 .DS_Store
 *.swp
+ansible/collections/

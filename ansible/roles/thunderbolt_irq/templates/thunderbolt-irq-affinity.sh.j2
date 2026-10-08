@@ -1,0 +1,26 @@
+#!/bin/bash
+# Pin thunderbolt NHI data IRQs to separate CPUs to avoid contention.
+# NHI#1 ({{ tb_nhi_pci_bus }}:00.5) vectors 2,3 -> CPU 8,9 ; NHI#2 ({{ tb_nhi_pci_bus }}:00.6) vectors 2,3 -> CPU 10,12
+#
+# IRQs are identified via /proc/interrupts (PCI address + edge vector), not
+# /proc/irq/N/actions: on this kernel /proc/irq/N/actions does not exist as a
+# flat file (each handler gets its own subdirectory instead), so the previous
+# grep-on-actions approach silently matched nothing.
+
+for i in 1 2 3 4 5; do
+  grep -q 'thunderbolt' /proc/interrupts 2>/dev/null && break
+  sleep 1
+done
+
+pinned=0
+while read -r line; do
+  irq=$(echo "$line" | awk -F: '{print $1}' | tr -d ' ')
+  case "$line" in
+    *{{ tb_nhi_pci_bus }}:00.5*2-edge*thunderbolt*) echo 8  > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
+    *{{ tb_nhi_pci_bus }}:00.5*3-edge*thunderbolt*) echo 9  > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
+    *{{ tb_nhi_pci_bus }}:00.6*2-edge*thunderbolt*) echo 10 > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
+    *{{ tb_nhi_pci_bus }}:00.6*3-edge*thunderbolt*) echo 12 > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
+  esac
+done < <(grep thunderbolt /proc/interrupts)
+
+logger -t thunderbolt-irq-affinity "pinned $pinned/4 thunderbolt data IRQs"
