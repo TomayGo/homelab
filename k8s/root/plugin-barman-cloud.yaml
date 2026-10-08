@@ -1,0 +1,28 @@
+# Phase 2（下書き）。cert-manager → plugin-barman-cloud の順で sync する
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: plugin-barman-cloud
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cnpg-system
+  sources:
+  - repoURL: https://cloudnative-pg.github.io/charts
+    chart: plugin-barman-cloud
+    targetRevision: 0.8.1
+    helm:
+      releaseName: plugin-barman-cloud
+      valueFiles:
+      - $values/k8s/apps/plugin-barman-cloud/values.yaml
+  - repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    ref: values
+  - repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    path: k8s/apps/plugin-barman-cloud/manifests
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true
