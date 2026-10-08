@@ -1,0 +1,104 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended"
+  ],
+  "timezone": "Asia/Tokyo",
+  "dependencyDashboard": true,
+  "ignorePaths": [
+    "**/*.enc.yaml",
+    "**/*.sops.yaml",
+    "ansible/collections/**",
+    "ansible/guest-configs/**"
+  ],
+  "argocd": {
+    "managerFilePatterns": [
+      "/^k8s/root/.+\\.ya?ml$/",
+      "/^k8s/bootstrap/root\\.ya?ml$/"
+    ]
+  },
+  "kubernetes": {
+    "managerFilePatterns": [
+      "/^k8s/apps/[^/]+/manifests/.+\\.ya?ml$/"
+    ]
+  },
+  "helm-values": {
+    "managerFilePatterns": [
+      "/^k8s/apps/[^/]+/values\\.ya?ml$/",
+      "/^k8s/bootstrap/values\\.ya?ml$/"
+    ]
+  },
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Ansible role のバイナリのバージョン（node_exporter / frr_exporter）",
+      "managerFilePatterns": [
+        "/^ansible/roles/node_exporter/defaults/main\\.yml$/"
+      ],
+      "matchStrings": [
+        "node_exporter_version: \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "prometheus/node_exporter",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^ansible/roles/frr_exporter/defaults/main\\.yml$/"
+      ],
+      "matchStrings": [
+        "frr_exporter_version: \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "tynany/frr_exporter",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^ansible/roles/pve_exporter/defaults/main\\.yml$/"
+      ],
+      "matchStrings": [
+        "pve_exporter_version: \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "prometheus-pve-exporter",
+      "datasourceTemplate": "pypi"
+    }
+  ],
+  "packageRules": [
+    {
+      "description": "取り込み直後なので、自動マージはしない。基盤系はまとめずに1つずつ",
+      "matchManagers": [
+        "argocd",
+        "helm-values",
+        "kubernetes",
+        "terraform",
+        "ansible-galaxy",
+        "custom.regex"
+      ],
+      "automerge": false
+    },
+    {
+      "description": "Talos の設定生成の契約バージョンと、Talos VM の ISO は手で上げる（docs/phase3.md）",
+      "matchFileNames": [
+        "tofu/talos/**"
+      ],
+      "matchDepNames": [
+        "siderolabs/talos"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "private な ghcr イメージは Renovate から見えないので対象外",
+      "matchPackageNames": [
+        "ghcr.io/tomaygo/pricetracker"
+      ],
+      "enabled": false
+    }
+  ]
+}
