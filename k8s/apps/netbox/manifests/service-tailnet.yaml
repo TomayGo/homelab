@@ -1,0 +1,18 @@
+# tailnet 公開（netbox.ayu-mamba.ts.net）。ProxyGroup+Ingress は upstream のバグで使えないので expose 方式
+apiVersion: v1
+kind: Service
+metadata:
+  name: netbox-tailnet
+  namespace: netbox
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: netbox
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/instance: netbox
+    app.kubernetes.io/component: netbox
+  ports:
+    - name: http
+      port: 80
+      targetPort: http

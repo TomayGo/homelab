@@ -1,0 +1,22 @@
+apiVersion: postgresql.cnpg.io/v1
+kind: Cluster
+metadata:
+  name: netbox-db
+  namespace: netbox
+spec:
+  instances: 2
+  imageName: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
+  affinity:
+    podAntiAffinityType: preferred
+  bootstrap:
+    initdb:
+      database: netbox
+      owner: netbox
+      encoding: UTF8
+      localeCType: C
+      localeCollate: C
+  storage:
+    storageClass: ceph-rbd
+    size: 5Gi
+  monitoring:
+    enablePodMonitor: false

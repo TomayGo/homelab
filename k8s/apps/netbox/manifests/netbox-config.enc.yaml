@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: netbox-config
+    namespace: netbox
+type: Opaque
+stringData:
+    secret_key: ENC[AES256_GCM,data:4V/j663sPv3LGpovpgPdszXudEC93TvqYMiRNgxxhUgZd+PRt1aBMKI1Mo7zSkoOXj6nx45Vm3ciq5YhX/nFxqQNAjQB/SDawW3KQsY1bB9LR2ZOXww=,iv:fFrEASyGButJzsBlSYzQc3ck/EH4C2KIUf9FfzGrjLw=,tag:twBTo4i/ECgtnfKKpcLGRA==,type:str]
+    api_token_peppers: ENC[AES256_GCM,data:EUgPkewk4HJLL4oKmwHkvQSGt81MUAWGeu9cKcu5rJRu8hfEo+l3MDc1bC+OoxeV8CK63rkpJasqezMiciOa1sUce2Y+BK5Dd3fQwlXdMA/p2ul6DnvzRSs=,iv:8O/9LZ8BJvcB08YCqtfv5No+m3tUiKXTW6IMyYdZr48=,tag:ovdFxByLe4t6Kz0aomPErw==,type:str]
+    email_password: ""
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBuTUtnTnJZWW4yd0Jyek1H
+            TkFkQ2EwYWVTK3E5ZEFNdHRPL3RyaHp0ankwCkpPU05NVDFKb2ZVcHNYd0s0d1ZF
+            czIxSXBhNWk1NWkwcm1kQ1VLSVJBWlUKLS0tICt1YVdLc3NlOFY4R2gyeHh1aGZW
+            Q0pXejlPeHJXTjhzeFJDLytoRnRlQTAKLar6y7qbNGHdVPFyFLRTxLm9UCygvcIJ
+            QA2y0KWeo7qUvkB6toGtIJDUFCevHFIU77ycApNk5UHcKWXpQishtw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-08T16:28:34Z"
+    mac: ENC[AES256_GCM,data:a62OqE+IabLr/Lmp8Wl/gPmrS5vCZjjmMnVLtsL5xjaJVBaolhczF9/tXgqOVnsFzwKkjjssuaNv6EHm7E1asY2jG7SRrR7NbaaeXOr8Q2laUzM8ic9gn1k8vm5Kg/tLxDP7lapO6/dPyXMslnKgmx0fl/+/V0Ah4v5XhWCI43M=,iv:n/xuySVN2U2mTxdaWSnYUzGLoqGhizZ5mV+LIdnqCO4=,tag:IEKEvTilywaZjvyOVj1gdw==,type:str]
+    version: 3.13.3

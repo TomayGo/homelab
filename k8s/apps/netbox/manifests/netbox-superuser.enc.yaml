@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: netbox-superuser
+    namespace: netbox
+type: kubernetes.io/basic-auth
+stringData:
+    username: ENC[AES256_GCM,data:0glTWW8=,iv:0BYd7Ce51eG/SMYtVI3DqLhmo+OIeY+N2PBNFQ24wCg=,tag:CKF2y4uq6wkid9L4KbWDaQ==,type:str]
+    password: ENC[AES256_GCM,data:vvuDaQQr9G+00CUr1aj2to33CWZsp5XKYPvvpmZfMbw=,iv:IgFTcdutptrHknRFn6tZmiPH3nCeRKnOoTqb9HdetOQ=,tag:cPUNp9/mxi7SAHGAH9n8uw==,type:str]
+    email: ENC[AES256_GCM,data:z2tRqPVlsKtCamQbUfNJ1e4=,iv:bBrBit240OmG5VY02uOcI1nWav1i9bnGlO7bDeBcdSs=,tag:KMFvfrY19f0S7BCNm/FDtg==,type:str]
+    api_token: ENC[AES256_GCM,data:TjgD6C/QAa5t9z53ndYmP9PQYQBRdUTz0tDXI1DtZ/vcbnoNkkyrpg==,iv:TuDPrR7PzCoG6Se3WWOfuCmUBtJPMM44KJtBUd9ZJeQ=,tag:wY6EaYBz5GSfZg8dfsHH7w==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBXZFN5MzdOM2l6ZzExbnI0
+            NnNqYTF6OEdhV1dGTU4rTUdwMndBQ3NpWkZBCjdKbHhRU3FHTnBTakxhaXJzcW1O
+            VENFRXl4bUtNUENoRWhGMDZqS1VrcGcKLS0tIGh5ZFlOTmt5SGY2RzlwTlJnaVBi
+            R3o1VjVDNzFXUTdwcmNRNWNHbjhmZkEKZi0XHGDFVA4nu0Ni3yehC75XXjRYZTze
+            1SQso0tE/usov4WnVgj2sj3SUV3bt3P1PuFgKse1M3Y6MItQFq51LA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-08T16:28:34Z"
+    mac: ENC[AES256_GCM,data:1fNjJfgMU8hloKFHMkd0eBBU39UV8bTigrsqox4h+JczE9krSkz0/2zz+n38VTUELOTHIDXOW+lL9VXxnRDNwwTR+/5BIxZegRXYGxDKymyjlLJ73WS+XkB1DkXqy44/e8RM0rNekYh4bxNFeFwZxaD2ULjs3zmTG0pIdXx/Mhk=,iv:cuTqDL/DpaGZ10sSMJ25j5bhI+8hrexVjZCQXzq3+pU=,tag:nBF7GYKrw8JByLT+LHByjA==,type:str]
+    version: 3.13.3
