@@ -1,0 +1,34 @@
+# Proxmox HA（手順書 6-2）。HA の対象はゲームサーバ（vm:106 mc）だけ
+# proxmox_cluster_ha_resources は check mode 非対応（--check では skip される）。rules は check/diff 対応
+- name: Proxmox HA
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    # community.proxmox は proxmoxer 2.3 以上が必要（Debian の python3-proxmoxer は 2.2.0）
+    ansible_python_interpreter: /opt/iac-venv/bin/python
+  module_defaults:
+    group/community.proxmox.proxmox:
+      api_host: "{{ proxmox_api_host }}"
+      api_user: "{{ proxmox_api_user }}"
+      api_token_id: "{{ proxmox_api_token_id }}"
+      api_token_secret: "{{ proxmox_api_token_secret }}"
+      validate_certs: false
+  tasks:
+    - name: HA resource vm:106 (mc)
+      community.proxmox.proxmox_cluster_ha_resources:
+        name: vm:106
+        state: present
+        hastate: started
+        comment: game server
+
+    # 案：普段は pve-1 で動かし、pve-1 が落ちたときだけ他へ。非 strict なので全ノードが候補（failback は既定で有効）
+    - name: HA rule mc-prefer-pve-1
+      community.proxmox.proxmox_cluster_ha_rules:
+        name: mc-prefer-pve-1
+        state: present
+        type: node-affinity
+        resources: vm:106
+        nodes: pve-1:2,pve-2:1,pve-3:1
+        strict: false
+        comment: game server prefers pve-1

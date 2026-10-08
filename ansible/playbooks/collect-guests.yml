@@ -1,0 +1,21 @@
+# 全ゲストの設定（/etc/pve/nodes/*/{qemu-server,lxc}/*.conf）を guest-configs/ に回収してコミットする（手順書 6-3）
+# 宣言的な管理はしない。変更履歴と、復元時の参照元にする。/etc/pve は pmxcfs で共有なので1台から読めば足りる
+- name: Collect guest configs
+  hosts: pve-1
+  gather_facts: false
+  tasks:
+    - name: Find guest configs
+      ansible.builtin.find:
+        paths: /etc/pve/nodes
+        patterns: "*.conf"
+        recurse: true
+      register: guest_confs
+
+    - name: Fetch guest configs
+      ansible.builtin.fetch:
+        src: "{{ item.path }}"
+        dest: "{{ playbook_dir }}/../guest-configs/{{ item.path | regex_replace('^/etc/pve/nodes/', '') }}"
+        flat: true
+      loop: "{{ guest_confs.files | selectattr('path', 'search', '/(qemu-server|lxc)/') | list }}"
+      loop_control:
+        label: "{{ item.path }}"
