@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: ghcr-pull
+    namespace: pricetracker
+type: kubernetes.io/dockerconfigjson
+stringData:
+    .dockerconfigjson: ENC[AES256_GCM,data:mGGUHSfPM5a3ksS5uYoY+8DnCeTA/fatPdZxgbzqXc9e75QMojbcTw8YYDxk0lopQdnFvEHRZaijQD2jsVBQ8K/rLP2oVzvj3ECJpwLaXbbHpbOSgA1JDg1268352r90WuS03yxUGXfUJfm41PVGcNqimPUi+A1lnXtwD+Awl3k4MhALlJcqhFI8HUddqhw+4Y8dndxViGxn9ShJfB0BsxfjFcs+8iEwBq/1W8Dg71R56Xk=,iv:h/WIvCyJHegXSk6vykzTlogO7+8UC3DM3Fw2OI4O6yk=,tag:+RjjNDdySd7NE7A9ma8FwA==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBXY0g1Rk1ZZ0EzWThKRDMz
+            VGpaSGFRdGhQTUU4Vko0WStTdUFsbU1lT3h3CkxNcURaeVp3ZXdtcGJZR1ZaWXB6
+            bmxGSGorMDBRbWxOM0V2dTd4WTBROFEKLS0tIGFlZ0dzNXVIaVBhTkR2MTl0TFRI
+            aW1Fb3EvWlZZUHh3dHY0Z2FURjRGZ1UKrjbqCzrD+b6sKyR/U3Xhtrcxa7Oo64q7
+            raY7Z7u7FFqzBmqXWa1jfADR5wiG9SHSGJ4w+rS+eBecHwL8/6M0GQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-08T16:45:42Z"
+    mac: ENC[AES256_GCM,data:kOGUDk7Qeh6J3PpS7We/PYwqJLB00khMEXdE6cgcWUsAOLLFnVTVX/fFX7uWSEBgtTbrU9oB8WctWlHqjoaES+n3B5dyBnqM0Ep1R7Glvgrp3UxRCJUJby6qERC+H2pN+6C6Oy954wQdzTWsEi9HTh2iS3KnISEvhLY92sMXI08=,iv:cCesjYJrrdaNXrwSaFkCACEVAHtaKJkn8zCtz2EcXJ0=,tag:Zj84Tg6Jt2rY+hm124IpLg==,type:str]
+    version: 3.13.3

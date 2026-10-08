@@ -57,7 +57,9 @@
 | 903 | netbox | pve-3 | running | ceph-pool 32G | LXC。HA。NetBox v4.3.2。→ k8sへ移行予定 |
 
 - VM 105（ai）は2026-10-09に削除した（ユーザー指示。GPUは取り外し済みだった）。
-- HAリソースは`ct:500`、`ct:903`、`vm:106`の3つ。HA ruleはまだない。手順書の前提（HAはゲームサーバだけ）に合わせるため、500と903はk8sに移してHAから外す。
+- HAリソースは`ct:500`、`ct:903`、`vm:106`の3つだった。手順書の前提（HAはゲームサーバだけ）に合わせ、2026-10-09に500と903をHAから外した。現在は`vm:106`だけ。HA ruleはまだない。
+- CT903 netbox：k8sの`netbox` namespaceに移行した（`k8s/apps/netbox/`）。CTは停止し、`onboot 0`にしてロールバック用に残してある。
+- CT500 discordbots：本番の`pricetracker`はk8sの`pricetracker` namespaceへ移す（`k8s/apps/pricetracker/`）。CTは開発環境としてHA対象外のまま動かす。
 
 ## 0-2. バックアップ
 
@@ -68,7 +70,7 @@
 - [x] CNPGの論理ダンプ：`cnpg/grafana-db-pg_dumpall-2026-10-09.sql`（5.9MB）
 - [x] 各PVEホストの設定：`hosts/pve-{1,2,3}-etc.tgz`。`/etc/network`、`/etc/frr`、`/etc/sysctl.d`、`/etc/systemd/system`、udev、modprobe、`/usr/local/bin/*.sh`（`thunderbolt-irq-affinity.sh`を含む）。パッケージ一覧は`hosts/pve-*-packages.txt`
 - [x] `/etc/pve`全体：`etc-pve-2026-10-09.tgz`
-- [ ] 全ゲストのvzdump：一部だけ取得済み。各ノードの`/var/lib/vz/dump/`にある
+- [x] 全ゲストのvzdump：PVEストレージ`pc-backups`（CIFS、`//desktop-6vkqmqj.ayu-mamba.ts.net/Backup`、`prune-backups keep-all=1`）の`dump/`にそろえた。最初の7件は各ノードの`/var/lib/vz/dump/`に取ってから`pc-backups`へコピーした（ローカルの元ファイルは残してある）
 
 | ゲスト | アーカイブ |
 |---|---|
@@ -79,7 +81,8 @@
 | 802 llama-rpc-2 | 21.1GB |
 | 803 llama-rpc-3 | 14.5GB |
 | 903 netbox | 0.9GB |
-| **未取得**：101 dtv、201〜203 Talos | 容量不足。見積もりは101が80〜93GB（録画データは圧縮が効かない想定）、Talos 3台で30〜50GB、合計110〜140GB |
+| 101 dtv | 34.4GB（`pc-backups`に直接） |
+| 201/202/203 Talos | 11.1GB / 11.7GB / 9.2GB（`pc-backups`に直接） |
 
 ## 0-3〜0-6
 
@@ -97,4 +100,3 @@
 ## 残っている作業（ユーザー）
 
 - [ ] ageの秘密鍵とOpenTofuのパスフレーズをパスワードマネージャに保管する
-- [ ] 101とTalos VMのvzdumpをどうするか決める
