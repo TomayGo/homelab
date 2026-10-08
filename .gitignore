@@ -1,0 +1,29 @@
+# 平文の秘密情報（手順書 3章）
+*.dec.*
+secrets.yaml
+talosconfig
+kubeconfig
+*.tfvars
+*.tfvars.json
+
+# age / SSH の秘密鍵
+keys.txt
+*.agekey
+id_*
+!id_*.pub
+
+# OpenTofu（stateは暗号化してコミットするので除外しない）
+.terraform/
+*.tfplan
+crash.log
+crash.*.log
+generated.tf
+*.tfstate.backup
+
+# Ansible
+ansible/collected/
+*.retry
+
+# エディタ等
+.DS_Store
+*.swp
