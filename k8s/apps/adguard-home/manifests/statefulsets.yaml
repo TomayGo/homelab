@@ -55,7 +55,7 @@ spec:
         - sh
         - -c
         - test -f /conf/AdGuardHome.yaml || cp /seed/AdGuardHome.yaml /conf/AdGuardHome.yaml
-        image: busybox:1.37
+        image: busybox:1.38
         imagePullPolicy: IfNotPresent
         name: seed-config
         resources: {}
@@ -162,7 +162,7 @@ spec:
         - sh
         - -c
         - test -f /conf/AdGuardHome.yaml || cp /seed/AdGuardHome.yaml /conf/AdGuardHome.yaml
-        image: busybox:1.37
+        image: busybox:1.38
         imagePullPolicy: IfNotPresent
         name: seed-config
         resources: {}
