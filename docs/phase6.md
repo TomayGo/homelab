@@ -1,4 +1,4 @@
-# Phase 6 実施記録（2026-10-09、6-4以外は完了）
+# Phase 6 実施記録（2026-10-09完了）
 
 ## 6-3 設定ファイルの記録（完了）
 
@@ -46,7 +46,7 @@
 - LXC 801〜803（llama-rpc、停止中）は2026-10-09にユーザーの指示で削除した。801の固定IP（192.168.1.90）がMetalLBのプールと重なっていた問題も、これでなくなった。削除前のvzdumpも、ユーザーの指示で各ノードのローカルと`pc-backups`の両方から削除した（使わないため）
 - VM 101 dtvに、未使用のディスク（`unused0: vm-101-disk-0`、`unused1: vm-101-disk-2`、各4MB）が残っている
 
-## 6-4 ゲストの内部（未着手：接続方法が決まっていない）
+## 6-4 ゲストの内部（完了）
 
 | ゲスト | 接続方法 | 内容 |
 |---|---|---|
@@ -93,3 +93,31 @@
 - 厳密に「pve-1からだけ」にするには、pve-1にもタグを付けて`src`にする必要がある
 - ただ、pve-1にタグを付けると、所有者が変わり、ユーザーからpve-1へのTailscale SSHのルールが効かなくなるおそれがある。pve-1はこの作業の拠点なので避けた
 - その代わり、`accept`の対象をapとmcのrootだけに絞った
+
+### 結果（2026-10-09）
+
+- ユーザーがACLを追加し、apとmcに`tag:iac-guest`を付けた。どちらも鍵の有効期限が無効になり、pve-1から通常のsshで承認なしに入れることを確認した
+- インベントリに`guests`グループ（ap、mc。tailnetのIP）を追加した
+- `playbooks/collect-guests-internal.yml`：管理対象のファイルを`collected/`に回収する（読み取りのみ）
+- `playbooks/guests-internal.yml`
+  - `roles/host_files`：`host_vars/<host>/host_files.yml`の一覧（パス、所有者、権限、変更時のhandler）に従って、`ansible/host_files/<host>/`のファイルを配る
+    - Wi-Fiのパスフレーズ（`sae_password`、3つの設定で同じ値）は`host_vars/ap/wifi.sops.yaml`。テンプレートのタスクはdiffを出さない
+    - ネットワーク（netplan）を変えたときのhandlerは`netplan generate`まで。反映は実機のそばで手で行う
+  - `roles/minecraft`：`server.properties`をキーごとに`lineinfile`で管理する（Minecraftが起動のたびに先頭の日時のコメントを書き直すため）。`rcon.password`は`host_vars/mc/minecraft.sops.yaml`。サーバの再起動は自動ではしない
+- 対象
+  - ap：hostapdの設定3つとsystemdの上書き2つ、netplan、networkdの3ファイル（MLD snoopingの無効化を含む）、modprobe 4つ、sysctl、grub、wifi-exporter、wifi-watchdog（service/timer/スクリプト）、metrics.sh、vpnserver.service（unitのファイルだけ。無効のまま）
+  - mc：minecraft.service、netplan、grub、user_jvm_args.txt、server.properties（60キー）
+  - 対象外：CT500（開発環境）、CT903（停止中の旧NetBox）
+- `--check --diff`：ap、mcとも`changed=0`
+
+### 気づいたこと
+
+- apのhostapdの設定（パスフレーズを含む）は`644`で、誰でも読める。`600`にするのがよい（未変更）
+- apに`.bak`ファイルが6つ残っている（`/etc/hostapd/*.bak`、`/etc/modprobe.d/*.bak-20260908-184702`、`/usr/local/bin/metrics.sh.bak*`）
+- mcのワールド（8.9GB）は、R2へのバックアップの対象外。vzdump（`pc-backups`、手動）とCephのレプリカだけで守られている
+
+## Phase 6の完了条件
+
+- [x] 全ゲストで`--check --diff`が`changed=0`（`guests.yml`：5台、`guests-internal.yml`：ap、mc）
+- [x] パススルーを使うVMで`hostpci`が維持されることを確認した（テストVMで検証）
+- [x] ゲームサーバのHA設定の管理方法が決まり、文書化されている（`playbooks/ha.yml`）
