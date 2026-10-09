@@ -1,4 +1,4 @@
-# Phase 4 実施記録（2026-10-09、apply前で停止中）
+# Phase 4 実施記録（2026-10-09完了）
 
 ## 構成（`tofu/proxmox/`）
 
@@ -26,8 +26,14 @@
 - `tofu plan`：`3 to import, 0 to add, 3 to change, 0 to destroy`。3つのchangeは、すべて`reboot_after_update: true -> false`だけ
 - `must be replaced`は出ていない
 
-## 残り（要確認）
+## apply（2026-10-09、ユーザー承認後）
 
-- [ ] `tofu apply`（importの確定と、stateの`reboot_after_update`の更新だけ）
-- [ ] apply後に`tofu plan`が`No changes`になることを確認する
-- [ ] 暗号化された`terraform.tfstate`をコミットする
+- planを保存し、内容がimport 3つと`reboot_after_update`の更新3つだけであることを確認してからapplyした
+- applyの前後で、`/etc/pve/nodes/*/qemu-server/20{1,2,3}.conf`のハッシュは完全に一致した（VMの設定は変わっていない）。VMは動いたままで、k8sの3ノードもReady
+- apply後の`tofu plan`は`No changes`
+- 暗号化された`terraform.tfstate`をコミットした
+
+## Phase 4の完了条件
+
+- [x] `tofu plan`が`No changes`
+- [x] 全Talos VMに`prevent_destroy`が付いている
