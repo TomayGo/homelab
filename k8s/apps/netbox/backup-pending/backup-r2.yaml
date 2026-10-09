@@ -1,0 +1,36 @@
+# scripts/enable-r2-backup.sh が __R2_*__ を埋めて manifests/ に移す。ベースバックアップは週1回（日曜4:00）、WAL で30日分の PITR
+apiVersion: barmancloud.cnpg.io/v1
+kind: ObjectStore
+metadata:
+  name: r2
+  namespace: netbox
+spec:
+  retentionPolicy: 30d
+  configuration:
+    destinationPath: s3://__R2_BUCKET__/cnpg/
+    endpointURL: https://__R2_ACCOUNT_ID__.r2.cloudflarestorage.com
+    s3Credentials:
+      accessKeyId:
+        name: r2-backup
+        key: RCLONE_CONFIG_R2_ACCESS_KEY_ID
+      secretAccessKey:
+        name: r2-backup
+        key: RCLONE_CONFIG_R2_SECRET_ACCESS_KEY
+    wal:
+      compression: zstd
+    data:
+      compression: bzip2
+---
+apiVersion: postgresql.cnpg.io/v1
+kind: ScheduledBackup
+metadata:
+  name: netbox-db-weekly
+  namespace: netbox
+spec:
+  schedule: 0 0 4 * * 0
+  backupOwnerReference: self
+  cluster:
+    name: netbox-db
+  method: plugin
+  pluginConfiguration:
+    name: barman-cloud.cloudnative-pg.io
