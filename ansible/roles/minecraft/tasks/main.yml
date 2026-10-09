@@ -1,0 +1,14 @@
+# server.properties はキーごとに管理する。Minecraft が起動のたびに先頭の日時のコメントを書き直すので、
+# ファイル丸ごとだと毎回差分になる。サーバの再起動は自動ではしない（遊んでいる人がいると落ちるため）
+- name: server.properties
+  ansible.builtin.lineinfile:
+    path: /home/tomaygo/mc-server/server.properties
+    regexp: "^{{ item.key | regex_escape }}="
+    line: "{{ item.key }}={{ item.value }}"
+    owner: tomaygo
+    group: tomaygo
+    mode: "0644"
+  loop: "{{ minecraft_properties | combine({'rcon.password': minecraft_rcon_password}) | dict2items }}"
+  loop_control:
+    label: "{{ item.key }}"
+  no_log: "{{ item.key == 'rcon.password' }}"

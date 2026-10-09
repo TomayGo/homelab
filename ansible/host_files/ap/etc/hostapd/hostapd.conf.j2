@@ -1,0 +1,34 @@
+# インターフェース設定
+interface=wlxccbabd331008
+bridge=br0
+driver=nl80211
+
+# Wi-Fi基本設定
+ssid=My_6GHz_AP
+country_code=JP
+ieee80211d=1
+hw_mode=a
+channel=37
+op_class=134
+ieee80211ax=1
+wmm_enabled=1
+ieee80211n=1
+ieee80211ac=1
+he_bss_color=1
+he_6ghz_rx_ant_pat=0
+he_6ghz_tx_ant_pat=0
+he_oper_chwidth=2
+he_oper_centr_freq_seg0_idx=47
+
+# セキュリティ設定 (6GHz必須要件: WPA3/SAE + PMF)
+wpa=2
+wpa_key_mgmt=SAE
+rsn_pairwise=CCMP
+sae_password={{ ap_sae_password }}
+ieee80211w=2
+
+sae_groups=19
+sae_pwe=2
+
+ctrl_interface=/var/run/hostapd
+ctrl_interface_group=0

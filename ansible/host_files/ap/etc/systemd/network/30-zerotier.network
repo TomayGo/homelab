@@ -1,0 +1,8 @@
+[Match]
+Name=ztrtarqv43
+
+[Network]
+Bridge=br0
+
+[Link]
+MTUBytes=1500

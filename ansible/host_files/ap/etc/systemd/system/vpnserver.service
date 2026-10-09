@@ -1,0 +1,12 @@
+[Unit]
+Description=SoftEther VPN Server
+After=network.target network-online.target
+
+[Service]
+ExecStart=/usr/local/vpnserver/vpnserver start
+ExecStop=/usr/local/vpnserver/vpnserver stop
+Type=forking
+RestartSec=3s
+
+[Install]
+WantedBy=multi-user.target

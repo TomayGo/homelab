@@ -1,0 +1,32 @@
+- name: Reload systemd
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Restart hostapd
+  ansible.builtin.systemd_service:
+    name: hostapd
+    state: restarted
+    daemon_reload: true
+
+- name: Restart wifi-exporter
+  ansible.builtin.systemd_service:
+    name: wifi-exporter
+    state: restarted
+    daemon_reload: true
+
+# 反映（netplan apply）は自動ではしない。tailnet 経由の接続ごと切れるおそれがあるので、実機のそばで手で行う
+- name: Netplan generate
+  ansible.builtin.command: netplan generate
+  changed_when: true
+
+- name: Reload networkd
+  ansible.builtin.command: networkctl reload
+  changed_when: true
+
+- name: Apply sysctl
+  ansible.builtin.command: sysctl --system
+  changed_when: true
+
+- name: Update grub
+  ansible.builtin.command: update-grub
+  changed_when: true

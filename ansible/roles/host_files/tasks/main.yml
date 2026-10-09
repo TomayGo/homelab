@@ -1,0 +1,35 @@
+# host_vars/<host>/host_files.yml の一覧を配る。中身は ansible/host_files/<host>/<パス>（template: true のものは .j2）
+# 既存のディレクトリの所有者と権限は変えない（/home/tomaygo/mc-server などがあるため）。ないときだけ作る
+- name: Directories
+  ansible.builtin.file:
+    path: "{{ item.path | dirname }}"
+    state: directory
+  loop: "{{ host_files }}"
+  loop_control:
+    label: "{{ item.path | dirname }}"
+
+- name: Files (copy)
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../host_files/{{ inventory_hostname }}{{ item.path }}"
+    dest: "{{ item.path }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop: "{{ host_files | rejectattr('template', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.path }}"
+  notify: "{{ item.notify | default(omit) }}"
+
+- name: Files (template)
+  ansible.builtin.template:
+    src: "{{ playbook_dir }}/../host_files/{{ inventory_hostname }}{{ item.path }}.j2"
+    dest: "{{ item.path }}"
+    owner: "{{ item.owner }}"
+    group: "{{ item.group }}"
+    mode: "{{ item.mode }}"
+  loop: "{{ host_files | selectattr('template', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.path }}"
+  notify: "{{ item.notify | default(omit) }}"
+  # 秘密情報（Wi-Fi のパスフレーズなど）を diff に出さない
+  diff: false

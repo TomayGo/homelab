@@ -1,0 +1,43 @@
+# インターフェース設定
+interface=wlxd056f28908dc
+bridge=br0
+driver=nl80211
+
+# Wi-Fi基本設定
+ssid=My_6GHz_AP
+country_code=JP
+ieee80211d=1
+
+# 5GHz帯
+hw_mode=a
+channel=36
+# iw phy info (Band 2) で確認したRTL8812BUの実能力に合わせて宣言
+# (rtw88_8822bu: HT cap 0x196f / VHT cap 0x03d071b2)
+ht_capab=[HT40+][LDPC][SHORT-GI-20][SHORT-GI-40][RX-STBC1][MAX-AMSDU-7935]
+ieee80211n=1
+ieee80211ac=1
+# 注: このチップはHE(11ax)非対応のため ieee80211ax は設定しない
+wmm_enabled=1
+
+# VHT能力 (これが無いと vht_caps_info=0 の名ばかり11acになる)
+vht_capab=[MAX-MPDU-11454][RXLDPC][SHORT-GI-80][TX-STBC-2BY1][RX-STBC-1][SU-BEAMFORMEE][MU-BEAMFORMEE][HTC-VHT][MAX-A-MPDU-LEN-EXP7]
+
+# 80MHz幅 (ch36-48 = W52、DFS不要、中心ch42 = 5210MHz)
+# 40MHzに戻すときは chwidth=0 にして seg0 の行を消す
+vht_oper_chwidth=1
+vht_oper_centr_freq_seg0_idx=42
+
+# セキュリティ設定
+wpa=2
+wpa_key_mgmt=SAE
+rsn_pairwise=CCMP
+sae_password={{ ap_sae_password }}
+ieee80211w=2
+sae_groups=19
+sae_pwe=2
+
+# RNR
+rnr=1
+
+ctrl_interface=/var/run/hostapd
+ctrl_interface_group=0
