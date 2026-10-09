@@ -19,7 +19,7 @@
 - `ide2`のCD-ROM（`local:iso/talos-v1.13.6-qemu-guest-agent-amd64.iso`）は、importしてもstateに入らない
   - `cdrom`ブロックを書くと`+ cdrom { enabled = false }`の差分になり、applyでISOが外れるおそれがある
   - このため管理対象から外した（`ignore_changes`）
-- `reboot_after_update`は、import直後のstateでは`true`になる。HCLの`false`との差は、stateだけの更新である（PVE側には存在しない値）
+- `reboot_after_update`は、import直後のstateでは`true`になる。HCLの`false`に合わせる変更は、stateだけの更新になる（PVE側には存在しない値）
 
 ## 差分の確認結果
 

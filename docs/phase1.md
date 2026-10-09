@@ -31,7 +31,7 @@
   - 既存のSecret `operator-oauth`は、SOPS（`manifests/operator-oauth.enc.yaml`）で管理する
   - chartは`oauth.clientId`が書かれているとSecretを生成するので、clientIdも書かない
 - Grafanaの管理者パスワード
-  - chartは、パスワードを指定しないとき`lookup`で既存のSecretを引き継ぎ、なければ乱数を生成する。Argo CDでは`lookup`が効かないので、描画のたびに値が変わる
+  - chartは、パスワードを指定しないとき`lookup`で既存のSecretを引き継ぎ、なければ乱数を生成する。Argo CDでは`lookup`が使えないので、描画のたびに値が変わる
   - 対策として`grafana.admin.existingSecret: kube-prometheus-stack-grafana`を指定し、そのSecretをSOPSで管理する
 - openwebui
   - `lmstudio`と`strata`の`spec.externalName`は、Tailscale operatorが`placeholder`から書き換える
@@ -47,7 +47,7 @@
 - `argocd app diff`：12個すべてで、差分は`argocd.argoproj.io/tracking-id`注釈の追加だけ。netboxの`netbox-db`には、live側の`annotations: {}`もある
 - 注意
   - Helmで作ったリソースには`last-applied`の注釈がない。このため「liveにあってGitにない項目」は差分に出ない
-  - Server-Side Applyでは、そうした項目は他の管理者の所有として残る。消されて壊れることはない
+  - Server-Side Applyでは、そうした項目は他の管理者の所有として残る。消されて使えなくなることはない
 - Helmのフック（Job/Pod）は、どのアプリの描画結果にもない
 
 ## 未確認事項の結果
@@ -71,4 +71,4 @@
 - [x] 平文のSecretがリポジトリに存在しない（全履歴を`git grep`し、追跡中の全YAMLのSecretの値が`ENC[`であることを確認した）
 - [x] Argo CD自身もGit経由で管理されている（Application `argocd`）
 
-自動sync（`selfHeal`）の有効化は、手順書どおり数日様子を見てから行う。
+自動sync（`selfHeal`）は、手順書どおり数日様子を見てから有効にする。

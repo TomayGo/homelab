@@ -40,7 +40,7 @@
 
 - **vzdumpの定期ジョブは存在しない**（`/etc/pve/jobs.cfg`がない）。PBSもない。
 - バックアップ可能なストレージは各ノードの`local`（ルートLV上の`/var/lib/vz`、94GB）だけ。全損時には残らない。
-- `storage.cfg`に壊れた定義が2つある。
+- `storage.cfg`に使えない定義が2つある。
   - `local-nvme`：`vg_nvme`が存在しない。このせいで`qm destroy --destroy-unreferenced-disks`が失敗する。
   - `data`：存在しないノード`pve`に限定されている。`/etc/pve/nodes/pve/`も空のまま残っている。
 
@@ -93,7 +93,7 @@
 - PVE APIのユーザーとtoken
   - ユーザー`iac-tofu@pve`、`iac-ansible@pve`にロール`IaC`を`/`で付与した
   - tokenはどちらも`privsep 0`
-  - 権限はbpgのドキュメントの例をそのまま使った。PVE 9.2の`Administrator`の全47権限と同じなので、tokenが漏れることはroot権限が漏れることと同じ
+  - 権限はbpgのドキュメントの例をそのまま使った。PVE 9.2の`Administrator`の全47権限と同じなので、tokenが漏れればroot権限が漏れたのと同じになる
   - tokenはSOPSで暗号化して保存した：`tofu/proxmox/proxmox-token.enc.yaml`、`ansible/group_vars/all/proxmox.sops.yaml`
 - 導入したツール：sops 3.13.3、OpenTofu 1.13.1、age 1.2.1、jq、gh 2.102.0
 

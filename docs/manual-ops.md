@@ -12,7 +12,7 @@
   ```
 
 - 丸ごとのバックアップは`tar czf etc-pve-$(date +%F).tgz -C / etc/pve`で取る（`priv/`に鍵があるので、置き場所の権限に注意）
-- `storage.cfg`に壊れた定義が2つ残っている（2026-10-09時点。消すかどうかは未決定）
+- `storage.cfg`に使えない定義が2つ残っている（2026-10-09時点。消すかどうかは未決定）
   - `local-nvme`：存在しない`vg_nvme`を参照している。このせいで`qm destroy --destroy-unreferenced-disks 1`が途中で失敗する
   - `data`：存在しないノード`pve`に限定されている
 - `/etc/pve/nodes/pve/`（存在しないノード`pve`）も空のまま残っている
@@ -53,4 +53,4 @@
 - 手順
   1. リリースタグ（`main`ではない）のinstall.yamlを取得して、`k8s/apps/ceph-csi/manifests/operator-install-<版>.yaml`として置く。古いファイルは消し、kustomizationを書き換える
   2. Argo CDの差分で、CRDとDeploymentの変更を確認してからsyncする
-- `main`のinstall.yaml（`:latest`イメージ）は使わない。2026-07-20に、これで壊れたことがある
+- `main`のinstall.yaml（`:latest`イメージ）は使わない。2026-07-20に、これで動かなくなったことがある

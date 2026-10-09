@@ -26,7 +26,7 @@ Renovate 44.147.0を`--platform=local --dry-run=extract`で実行し、次のと
 ## 気づいたこと
 
 - **`dns/adguard-exporter`（`ghcr.io/henrywhitaker3/adguard-exporter`）と`dns/adguardhome-sync`（`ghcr.io/bakito/adguardhome-sync`）が`:latest`タグで動いている**
-  - ceph-csi-operatorが`:latest`の更新で壊れたのと同じ形
+  - ceph-csi-operatorが`:latest`の更新で動かなくなったのと同じ形
   - Renovateは`latest`を更新できないので、バージョンを固定するのがよい（未変更。変更するとArgo CDのsyncが必要）
 
 ## 残り（ユーザー）

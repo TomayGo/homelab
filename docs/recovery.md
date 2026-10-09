@@ -35,7 +35,7 @@ kustomize build --enable-alpha-plugins --enable-exec k8s/bootstrap/manifests | k
 kubectl apply -f k8s/bootstrap/root.yaml
 ```
 
-- syncしたら、Helmのrelease Secret（`owner=helm`）は作らない（`helm install`したargocdのものは消す）
+- Argo CDの管理に移したら、Helmのrelease Secret（`owner=helm`）は残さない（`helm install`したargocdの分は消す）
 - ceph-csiは、`k8s/apps/ceph-csi/manifests/csi-rbd-secret.enc.yaml`のCephユーザー（`client.k8s`）が新しいCephに存在しないと動かない。手順2で同じ名前のユーザーを作り、鍵をSOPSのファイルに書き戻す
 
 ## PVCのバックアップから戻す
