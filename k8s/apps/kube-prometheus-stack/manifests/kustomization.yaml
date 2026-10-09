@@ -8,3 +8,21 @@ resources:
   - namespace.yaml
 generators:
   - secret-generator.yaml
+# ダッシュボードの JSON は dashboards/ に置く。名前は固定（Grafana サイドカーはラベルで拾う）
+configMapGenerator:
+  - name: dashboard-proxmox-ve-cluster
+    namespace: monitoring
+    files:
+      - dashboards/proxmox-ve-cluster.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"
+  - name: dashboard-wifi-ap
+    namespace: monitoring
+    files:
+      - dashboards/wifi-ap.json
+    options:
+      disableNameSuffixHash: true
+      labels:
+        grafana_dashboard: "1"

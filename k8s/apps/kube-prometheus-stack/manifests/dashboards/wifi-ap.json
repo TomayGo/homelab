@@ -1,0 +1,269 @@
+{
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "description": "VM103 (ap) の hostapd exporter",
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "links": [
+    {
+      "title": "Proxmox VE Cluster",
+      "type": "link",
+      "url": "/d/pve-cluster-overview",
+      "icon": "dashboard"
+    }
+  ],
+  "panels": [
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P8D9ADF90DB2E3ECF"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              {
+                "color": "blue",
+                "value": null
+              }
+            ]
+          }
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 0
+      },
+      "id": 50,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "hostapd_clients_total",
+          "legendFormat": "{{band}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P8D9ADF90DB2E3ECF"
+          }
+        }
+      ],
+      "title": "Wi-Fi connected clients",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P8D9ADF90DB2E3ECF"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 10,
+            "lineWidth": 2
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": -70
+              },
+              {
+                "color": "green",
+                "value": -50
+              }
+            ]
+          },
+          "unit": "dBm"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 16,
+        "x": 8,
+        "y": 0
+      },
+      "id": 51,
+      "targets": [
+        {
+          "expr": "hostapd_client_signal_dbm",
+          "legendFormat": "{{band}} {{mac}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P8D9ADF90DB2E3ECF"
+          }
+        }
+      ],
+      "title": "Client signal strength",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P8D9ADF90DB2E3ECF"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "thresholds": {
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "yellow",
+                "value": 100
+              },
+              {
+                "color": "green",
+                "value": 500
+              }
+            ]
+          },
+          "unit": "Mbps"
+        }
+      },
+      "gridPos": {
+        "h": 4,
+        "w": 8,
+        "x": 0,
+        "y": 4
+      },
+      "id": 52,
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ]
+        }
+      },
+      "targets": [
+        {
+          "expr": "hostapd_client_tx_bitrate_mbps",
+          "legendFormat": "{{band}} {{mac}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P8D9ADF90DB2E3ECF"
+          }
+        }
+      ],
+      "title": "Client TX bitrate",
+      "type": "stat"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P8D9ADF90DB2E3ECF"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 15,
+            "lineWidth": 2
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+      },
+      "id": 53,
+      "targets": [
+        {
+          "expr": "rate(hostapd_client_rx_bytes_total[1m])",
+          "legendFormat": "{{band}} {{mac}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P8D9ADF90DB2E3ECF"
+          }
+        }
+      ],
+      "title": "Client traffic (RX)",
+      "type": "timeseries"
+    },
+    {
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P8D9ADF90DB2E3ECF"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "custom": {
+            "fillOpacity": 15,
+            "lineWidth": 2
+          },
+          "unit": "Bps"
+        }
+      },
+      "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+      },
+      "id": 54,
+      "targets": [
+        {
+          "expr": "rate(hostapd_client_tx_bytes_total[1m])",
+          "legendFormat": "{{band}} {{mac}}",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P8D9ADF90DB2E3ECF"
+          }
+        }
+      ],
+      "title": "Client traffic (TX)",
+      "type": "timeseries"
+    }
+  ],
+  "refresh": "30s",
+  "schemaVersion": 41,
+  "tags": [
+    "wifi"
+  ],
+  "templating": {
+    "list": []
+  },
+  "time": {
+    "from": "now-6h",
+    "to": "now"
+  },
+  "timepicker": {},
+  "timezone": "browser",
+  "title": "Wi-Fi AP (VM103)",
+  "uid": "wifi-ap-hostapd"
+}

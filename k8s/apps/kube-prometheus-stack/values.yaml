@@ -186,11 +186,27 @@ prometheus:
       static_configs:
       - targets:
         - adguard-exporter.dns.svc.cluster.local:9618
+    # クラスタ全体（ゲスト・ストレージ・HA など）は pve-1 の exporter から取る
     - job_name: pve
       metrics_path: /pve
       params:
         cluster:
         - "1"
+        module:
+        - default
+        node:
+        - "0"
+        target:
+        - localhost
+      static_configs:
+      - targets:
+        - 192.168.1.79:9221
+    # ノード単位（onboot など）は、そのノード上のゲストのぶんしか返らないので 3 台とも取る
+    - job_name: pve-node
+      metrics_path: /pve
+      params:
+        cluster:
+        - "0"
         module:
         - default
         node:
@@ -200,6 +216,8 @@ prometheus:
       static_configs:
       - targets:
         - 192.168.1.79:9221
+        - 192.168.1.80:9221
+        - 192.168.1.81:9221
     - job_name: node
       scrape_interval: 23s
       static_configs:
