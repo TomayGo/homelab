@@ -1,0 +1,262 @@
+# Cloudflare R2 の使用量（保存量と今月の Class A/B 操作数）を GraphQL Analytics API から取り、
+# Prometheus 形式で出す。無料枠に対するアラートは values.yaml の r2 グループ
+# API トークン（Account Analytics: Read）とアカウント ID は Secret r2-usage-exporter（SOPS）。
+# scripts/enable-r2-usage-alert.sh で作る
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: r2-usage-exporter
+  namespace: monitoring
+spec:
+  replicas: 1
+  revisionHistoryLimit: 3
+  selector:
+    matchLabels:
+      app: r2-usage-exporter
+  template:
+    metadata:
+      labels:
+        app: r2-usage-exporter
+    spec:
+      securityContext:
+        runAsUser: 65534
+        runAsGroup: 65534
+        runAsNonRoot: true
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+      - name: exporter
+        image: python:3.14-slim
+        imagePullPolicy: IfNotPresent
+        command:
+        - python3
+        - /scripts/r2_usage_exporter.py
+        env:
+        - name: PYTHONUNBUFFERED
+          value: '1'
+        envFrom:
+        - secretRef:
+            name: r2-usage-exporter
+        ports:
+        - containerPort: 9877
+          name: metrics
+          protocol: TCP
+        readinessProbe:
+          httpGet:
+            path: /metrics
+            port: metrics
+          periodSeconds: 30
+        resources:
+          requests:
+            cpu: 5m
+            memory: 32Mi
+          limits:
+            memory: 96Mi
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - mountPath: /scripts
+          name: script
+      volumes:
+      - name: script
+        configMap:
+          name: r2-usage-exporter-script
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: r2-usage-exporter
+  namespace: monitoring
+spec:
+  ports:
+  - name: metrics
+    port: 9877
+    protocol: TCP
+    targetPort: metrics
+  selector:
+    app: r2-usage-exporter
+  type: ClusterIP
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: r2-usage-exporter-script
+  namespace: monitoring
+data:
+  r2_usage_exporter.py: |
+    #!/usr/bin/env python3
+    # 無料枠はアカウント単位なので、バケットで絞らずアカウント全体を取る。
+    # 操作数は UTC の月初からの累計（請求期間の区切りはアカウントごとに違うので、暦月で近似する）
+    import datetime as dt
+    import json
+    import os
+    import threading
+    import time
+    import urllib.request
+    from http.server import BaseHTTPRequestHandler, HTTPServer
+
+    API = "https://api.cloudflare.com/client/v4/graphql"
+    TOKEN = os.environ["CF_API_TOKEN"]
+    ACCOUNT = os.environ["CF_ACCOUNT_ID"]
+    INTERVAL = int(os.environ.get("POLL_INTERVAL", "600"))
+
+    # https://developers.cloudflare.com/r2/pricing/ の分類。FREE は無料と明記されているもの。
+    # どこにも載っていないもの（ダッシュボードが呼ぶ GetBucketSippyConfiguration など）は other にする
+    CLASS_A = {
+        "ListBuckets", "PutBucket", "ListObjects", "PutObject", "CopyObject",
+        "CompleteMultipartUpload", "CreateMultipartUpload", "LifecycleStorageTierTransition",
+        "ListMultipartUploads", "UploadPart", "UploadPartCopy", "ListParts",
+        "PutBucketEncryption", "PutBucketCors", "PutBucketLifecycleConfiguration",
+    }
+    CLASS_B = {
+        "HeadBucket", "HeadObject", "GetObject", "UsageSummary", "GetBucketEncryption",
+        "GetBucketLocation", "GetBucketCors", "GetBucketLifecycleConfiguration",
+    }
+    FREE = {"DeleteObject", "DeleteBucket", "AbortMultipartUpload"}
+
+    QUERY = """
+    query ($account: string!, $storageSince: Time!, $monthStart: Time!, $now: Time!) {
+      viewer {
+        accounts(filter: {accountTag: $account}) {
+          storage: r2StorageAdaptiveGroups(
+            limit: 10000
+            filter: {datetime_geq: $storageSince, datetime_leq: $now}
+            orderBy: [datetime_DESC]
+          ) {
+            max { payloadSize metadataSize objectCount }
+            dimensions { bucketName datetime }
+          }
+          ops: r2OperationsAdaptiveGroups(
+            limit: 10000
+            filter: {datetime_geq: $monthStart, datetime_leq: $now}
+          ) {
+            sum { requests }
+            dimensions { actionType }
+          }
+        }
+      }
+    }
+    """
+
+    state = {"body": "", "errors": 0, "last_success": 0.0}
+    lock = threading.Lock()
+
+
+    def rfc3339(t):
+        return t.strftime("%Y-%m-%dT%H:%M:%SZ")
+
+
+    def esc(v):
+        return v.replace("\\", "\\\\").replace('"', '\\"').replace("\n", "\\n")
+
+
+    def fetch():
+        now = dt.datetime.now(dt.timezone.utc).replace(microsecond=0)
+        month_start = now.replace(day=1, hour=0, minute=0, second=0)
+        variables = {
+            "account": ACCOUNT,
+            # 保存量は 1 時間ごとくらいにしか更新されないので、直近 1 日から各バケットの最新値を拾う
+            "storageSince": rfc3339(now - dt.timedelta(days=1)),
+            "monthStart": rfc3339(month_start),
+            "now": rfc3339(now),
+        }
+        req = urllib.request.Request(
+            API,
+            data=json.dumps({"query": QUERY, "variables": variables}).encode(),
+            headers={"Authorization": f"Bearer {TOKEN}", "Content-Type": "application/json"},
+            method="POST",
+        )
+        with urllib.request.urlopen(req, timeout=30) as r:
+            resp = json.load(r)
+        if resp.get("errors"):
+            raise RuntimeError(json.dumps(resp["errors"])[:500])
+        accounts = resp["data"]["viewer"]["accounts"]
+        if not accounts:
+            raise RuntimeError("account not found (check CF_ACCOUNT_ID / token scope)")
+        acc = accounts[0]
+
+        latest = {}
+        for g in acc["storage"]:  # 新しい順
+            b = g["dimensions"]["bucketName"]
+            if b not in latest:
+                latest[b] = g["max"]
+
+        ops = {}
+        for g in acc["ops"]:
+            a = g["dimensions"]["actionType"]
+            ops[a] = ops.get(a, 0) + g["sum"]["requests"]
+        return latest, ops
+
+
+    def render(latest, ops):
+        out = [
+            "# HELP r2_storage_bytes Latest stored bytes (payload + metadata) per bucket.",
+            "# TYPE r2_storage_bytes gauge",
+        ]
+        for b, m in sorted(latest.items()):
+            out.append(f'r2_storage_bytes{{bucket="{esc(b)}"}} {m["payloadSize"] + m["metadataSize"]}')
+        out += [
+            "# HELP r2_storage_objects Latest object count per bucket.",
+            "# TYPE r2_storage_objects gauge",
+        ]
+        for b, m in sorted(latest.items()):
+            out.append(f'r2_storage_objects{{bucket="{esc(b)}"}} {m["objectCount"]}')
+        out += [
+            "# HELP r2_operations_month_to_date Requests since the start of the current UTC month, account-wide.",
+            "# TYPE r2_operations_month_to_date gauge",
+        ]
+        # 今月まだ 1 回も無いクラスも 0 で出す（式が空になってアラートが評価されないのを避ける）
+        out.append('r2_operations_month_to_date{action="",class="A"} 0')
+        out.append('r2_operations_month_to_date{action="",class="B"} 0')
+        for a, n in sorted(ops.items()):
+            cls = "A" if a in CLASS_A else "B" if a in CLASS_B else "free" if a in FREE else "other"
+            out.append(f'r2_operations_month_to_date{{action="{esc(a)}",class="{cls}"}} {n}')
+        return out
+
+
+    def poll():
+        while True:
+            try:
+                lines = render(*fetch())
+                with lock:
+                    state["body"] = "\n".join(lines) + "\n"
+                    state["last_success"] = time.time()
+            except Exception as e:
+                print(f"poll failed: {e}", flush=True)
+                with lock:
+                    state["errors"] += 1
+            time.sleep(INTERVAL)
+
+
+    class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path != "/metrics":
+                self.send_response(404)
+                self.end_headers()
+                return
+            with lock:
+                body = state["body"] + (
+                    "# HELP r2_exporter_last_success_timestamp_seconds Last successful poll of the Cloudflare API.\n"
+                    "# TYPE r2_exporter_last_success_timestamp_seconds gauge\n"
+                    f"r2_exporter_last_success_timestamp_seconds {state['last_success']}\n"
+                    "# HELP r2_exporter_errors_total Failed polls of the Cloudflare API.\n"
+                    "# TYPE r2_exporter_errors_total counter\n"
+                    f"r2_exporter_errors_total {state['errors']}\n"
+                )
+            data = body.encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "text/plain; version=0.0.4")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
+        def log_message(self, fmt, *args):
+            pass
+
+
+    threading.Thread(target=poll, daemon=True).start()
+    HTTPServer(("0.0.0.0", 9877), Handler).serve_forever()

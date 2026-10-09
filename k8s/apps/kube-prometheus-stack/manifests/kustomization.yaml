@@ -4,6 +4,7 @@ resources:
   - pvc-backup.yaml
   - dashboards.yaml
   - discord-bridge.yaml
+  - r2-usage-exporter.yaml
   - hostapd-external.yaml
   - namespace.yaml
 generators:

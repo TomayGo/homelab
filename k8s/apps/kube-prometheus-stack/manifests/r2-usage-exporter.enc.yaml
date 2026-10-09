@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: r2-usage-exporter
+    namespace: monitoring
+type: Opaque
+stringData:
+    CF_ACCOUNT_ID: ENC[AES256_GCM,data:IcOMn2Uw/06imRK79JCsvlqVgEyyzNWzZUID2txErIo=,iv:Lci66Sz2NpXvUgt5r5CfBxjJvtOMLLshSXB4fJiAaDU=,tag:TJTxfT9joqstkyJmvvrhEA==,type:str]
+    CF_API_TOKEN: ENC[AES256_GCM,data:D6vE2lz9AP04wbonCQZS/s+xOmdUKzKag+HuNMqABONz+aA1pXkoLKheGoo/16nNf2g83RE=,iv:eSV0yYz0WQWMpEoJGWje+2D4u52dVWoIBjLmm422OZU=,tag:sI2yPpQAXPeHp7vN48uKNA==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBzQU5VODhTK3c2ZjBmVUJJ
+            MC9Nd29nWkVBeFhBa2ZEQ242ajFJalNDN2w0CnZDVkw1UlpKbTRCcU5pWFNEY1Rt
+            akcvNkRnRTA2Yy9JQ3NYd1RORmlTNE0KLS0tIGMvRXlhT09odmdvVStGQUQ2SGY5
+            Kzg2NXpJb0NqRU56TzJRQnFGajN4NW8KtAchGjkoHfyxCDCAq/YDF7GtXAfQ7L/4
+            fSIAyB7BKAwpZ/v3s4L9z87fMzh4dKF0GQDR9aP15JlHqrRgLiRVtA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-09T15:18:57Z"
+    mac: ENC[AES256_GCM,data:agtyqMGfr4Y+qFkM+B/zlrwddIMdbQD7nxZvvptSAXR2MLaFw7TKgo/BUubaYUha7iW9mLkeUMlpqz6hPxnUS6FSeyWF1hyCbh4te2nxLcLIXW0o4bMzs0hNe0Smbn4WMYnjmr475kqdyERwI3yvMYON0TVEImkZPIjsEmCVX4I=,iv:DeINCnJcxr5pTflMcr2Te/yi0T/yIA0DWix5+IYDIjQ=,tag:grSI2qlOBbv2Ju40Nu0ikQ==,type:str]
+    version: 3.13.3

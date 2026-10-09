@@ -61,6 +61,69 @@ additionalPrometheusRulesMap:
         for: 30s
         labels:
           severity: critical
+    - name: r2
+      # Cloudflare R2 の無料枠（アカウント全体・月あたり）: 保存 10 GB-month、Class A 100 万回、Class B 1000 万回。
+      # 80% で warning、90% で critical。GB は 10^9 として早めに出す。保存量は請求上は「日ごとの最大値の月平均」だが、
+      # ここでは今の保存量で見る（この量が続くと月平均もそこに寄る）。操作数は UTC の暦月の累計
+      # 値は manifests/r2-usage-exporter.yaml が Cloudflare GraphQL API から 10 分ごとに取る
+      rules:
+      - alert: R2StorageFreeTierWarning
+        annotations:
+          summary: 'R2 保存量が無料枠の {{ $value | humanizePercentage }}（10 GB 中）'
+          description: 古い世代や CNPG の retentionPolicy を見直す。90% で critical になる
+        expr: sum(max by(bucket) (r2_storage_bytes)) / 10e9 > 0.8
+        for: 30m
+        labels:
+          severity: warning
+      - alert: R2StorageFreeTierCritical
+        annotations:
+          summary: 'R2 保存量が無料枠の {{ $value | humanizePercentage }}（10 GB 中）'
+          description: このままだと月平均が 10 GB-month を超えて課金される
+        expr: sum(max by(bucket) (r2_storage_bytes)) / 10e9 > 0.9
+        for: 30m
+        labels:
+          severity: critical
+      - alert: R2ClassAOpsFreeTierWarning
+        annotations:
+          summary: 'R2 Class A 操作が今月の無料枠の {{ $value | humanizePercentage }}（100 万回中）'
+          description: PutObject / UploadPart / ListObjects など。内訳は r2_operations_month_to_date{class="A"}
+        expr: sum(max by(action) (r2_operations_month_to_date{class="A"})) / 1e6 > 0.8
+        for: 15m
+        labels:
+          severity: warning
+      - alert: R2ClassAOpsFreeTierCritical
+        annotations:
+          summary: 'R2 Class A 操作が今月の無料枠の {{ $value | humanizePercentage }}（100 万回中）'
+          description: PutObject / UploadPart / ListObjects など。内訳は r2_operations_month_to_date{class="A"}
+        expr: sum(max by(action) (r2_operations_month_to_date{class="A"})) / 1e6 > 0.9
+        for: 15m
+        labels:
+          severity: critical
+      - alert: R2ClassBOpsFreeTierWarning
+        annotations:
+          summary: 'R2 Class B 操作が今月の無料枠の {{ $value | humanizePercentage }}（1000 万回中）'
+          description: GetObject / HeadObject など。内訳は r2_operations_month_to_date{class="B"}
+        expr: sum(max by(action) (r2_operations_month_to_date{class="B"})) / 1e7 > 0.8
+        for: 15m
+        labels:
+          severity: warning
+      - alert: R2ClassBOpsFreeTierCritical
+        annotations:
+          summary: 'R2 Class B 操作が今月の無料枠の {{ $value | humanizePercentage }}（1000 万回中）'
+          description: GetObject / HeadObject など。内訳は r2_operations_month_to_date{class="B"}
+        expr: sum(max by(action) (r2_operations_month_to_date{class="B"})) / 1e7 > 0.9
+        for: 15m
+        labels:
+          severity: critical
+      # 取れていないと上のアラートが黙るので、それ自体を知らせる
+      - alert: R2UsageExporterStale
+        annotations:
+          summary: R2 の使用量を 1 時間以上取れていない
+          description: r2-usage-exporter のログを見る（API トークンの失効・権限など）。この間は R2 の無料枠アラートが出ない
+        expr: absent(r2_exporter_last_success_timestamp_seconds) or (time() - max(r2_exporter_last_success_timestamp_seconds)) > 3600
+        for: 15m
+        labels:
+          severity: warning
     - name: exporters
       rules:
       - alert: AdguardExporterDown
@@ -156,6 +219,12 @@ alertmanager:
       group_wait: 30s
       receiver: discord
       repeat_interval: 4h
+      routes:
+      # R2 の無料枠は月末まで戻らないので、4 時間ごとに繰り返すと Discord が埋まる。1 日 1 回にする
+      - matchers:
+        - alertname=~"R2.*FreeTier.*"
+        receiver: discord
+        repeat_interval: 24h
 grafana:
   # 管理者の認証情報は manifests/grafana-admin.enc.yaml（SOPS）。未指定だと chart が乱数で生成し、Argo CD では描画のたびに変わる
   admin:
@@ -340,6 +409,11 @@ prometheus:
       static_configs:
       - targets:
         - hostapd-external.monitoring.svc.cluster.local:9152
+    - job_name: r2-usage
+      scrape_interval: 60s
+      static_configs:
+      - targets:
+        - r2-usage-exporter.monitoring.svc.cluster.local:9877
     # 2 台を必ず別ノードに置く（既定の soft では同じノードに並ぶことがある）
     podAntiAffinity: hard
     replicas: 2
