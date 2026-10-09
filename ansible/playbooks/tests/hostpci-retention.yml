@@ -1,0 +1,31 @@
+# 未確認事項 #11 の検証：hostpci をタスクに書かずに update: true で他の項目を変えたとき、hostpci が残るか
+# 使い捨てのテスト VM（起動しない）に対して実行する。実際のゲストには使わない
+- name: hostpci retention test
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: /opt/iac-venv/bin/python
+    test_vmid: 990
+  module_defaults:
+    group/community.proxmox.proxmox:
+      api_host: "{{ proxmox_api_host }}"
+      api_user: "{{ proxmox_api_user }}"
+      api_token_id: "{{ proxmox_api_token_id }}"
+      api_token_secret: "{{ proxmox_api_token_secret }}"
+      validate_certs: false
+  tasks:
+    - name: Update memory, cores and description without mentioning hostpci
+      community.proxmox.proxmox_kvm:
+        vmid: "{{ test_vmid }}"
+        node: pve-1
+        name: iac-hostpci-test
+        update: true
+        memory: 1024
+        cores: 2
+        description: "temporary: IaC runbook #11 test (updated by ansible). delete me"
+      register: upd
+
+    - name: Result
+      ansible.builtin.debug:
+        var: upd.changed

@@ -1,0 +1,62 @@
+# 一点物のゲスト（手順書 6-1）。vars/guests.yml の項目を現状と比べ、違う項目だけを PUT /nodes/<node>/<type>/<vmid>/config で更新する
+#
+# community.proxmox の proxmox_kvm / proxmox を使わない理由（2026-10-09 にテスト VM で確認）
+#   - どちらも check mode に対応していない（--check では skip され、差分が見えない）
+#   - update: true は同じ内容でも毎回 PUT して changed になる（冪等でない）
+#   - なお、hostpci を書かずに update: true しても hostpci は残る（未確認事項 #11）
+# 動いている VM で、ホットプラグできない項目を変えた場合は、次の再起動で反映される（pending）
+- name: One-off guests
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars:
+    ansible_python_interpreter: /opt/iac-venv/bin/python
+  vars_files:
+    - ../vars/guests.yml
+  module_defaults:
+    group/community.proxmox.proxmox:
+      api_host: "{{ proxmox_api_host }}"
+      api_user: "{{ proxmox_api_user }}"
+      api_token_id: "{{ proxmox_api_token_id }}"
+      api_token_secret: "{{ proxmox_api_token_secret }}"
+      validate_certs: false
+  tasks:
+    - name: Current config
+      community.proxmox.proxmox_vm_info:
+        vmid: "{{ item.vmid }}"
+        node: "{{ item.node }}"
+        type: "{{ item.type }}"
+        config: current
+      loop: "{{ guests }}"
+      loop_control:
+        label: "{{ item.vmid }}"
+      register: current
+      check_mode: false
+
+    - name: Drift (vars/guests.yml と違う項目)
+      ansible.builtin.debug:
+        msg: "{{ drift if drift else 'no drift' }}"
+      vars:
+        drift: "{{ item.item.config | config_drift(item.proxmox_vms[0].config) }}"
+      changed_when: drift | length > 0
+      loop: "{{ current.results }}"
+      loop_control:
+        label: "{{ item.item.vmid }} {{ item.item.config.name | default(item.item.config.hostname) }}"
+
+    - name: Update drifted keys only
+      ansible.builtin.uri:
+        url: "https://{{ proxmox_api_host }}:8006/api2/json/nodes/{{ item.item.node }}/{{ item.item.type }}/{{ item.item.vmid }}/config"
+        method: PUT
+        headers:
+          Authorization: "PVEAPIToken={{ proxmox_api_user }}!{{ proxmox_api_token_id }}={{ proxmox_api_token_secret }}"
+        body_format: form-urlencoded
+        body: "{{ drift }}"
+        validate_certs: false
+      vars:
+        drift: "{{ item.item.config | config_drift(item.proxmox_vms[0].config) }}"
+      when: drift | length > 0
+      changed_when: true
+      no_log: true
+      loop: "{{ current.results }}"
+      loop_control:
+        label: "{{ item.item.vmid }}"
