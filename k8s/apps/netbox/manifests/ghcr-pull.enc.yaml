@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: ghcr-pull
+    namespace: netbox
+stringData:
+    .dockerconfigjson: ENC[AES256_GCM,data:ZZ2Z+Uh8MEZ9V4NuEjSqxCKf2Ylg4EOOTHjg0Bs6GKfdXyUpskSDav3o+23qKHtSgRSAB+076kXKZbqt3d+7QRv5Lykq8unrcKVZnBk6mYIlt32ptY9SxVSVLbTGZ5AqTPESj0R9fvSLzBwAjzjmJtZxRuxDpEayGpK02HIHI68X2Ei47GS4e1dXBtKwhRb9/LOpSgHmXYPhUZsScGkoA+NsWmN2xG4V51bnXGLML+PvLkk=,iv:MCq73j7M+BreS+VmJ3Usu18UU0qoz2vyaOi5QRM8GYY=,tag:/PK+Nys7XySWeL4Ygg/4xQ==,type:str]
+type: kubernetes.io/dockerconfigjson
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBvV3hOaFZmMjhVRk9EdVpE
+            cVZRS3lTREZkbFhtQ1hPVEQvaEowVXI3L0hjCkhCS3FnY1BMZDdzYUhTd29GbEUw
+            V0ZHZS9JK200bnN1aXNwRWU4bndkK3cKLS0tICtrU2dndStPUXU1NjZpeE5sYURK
+            cWVQYi9LR29Hd2xGKzRGdzBjZjRIQzAKgD6RyUXoIpBJHFaML4EyWhzlhU8E5+De
+            VWkpGjdG5oGCQTMxM2zraUzZ2v/QZWWu0DYO/0Xld2DPba+3APesag==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-09T00:52:34Z"
+    mac: ENC[AES256_GCM,data:L2pW+5JLbMwNIClsQ3CnOgTt2VPVtIUQB+27TOpguFTLY1CV2STygJQDtoIG9vM4/P+SVqKhTvGUklXXAq/e/lppsGVge/fuzFNxeSqq+gRyeSgQgQwpplqFHnSYScIT2FPL9/CPu6JbkH+qyb/F4frm30DhyzFbEsDL6pSmdiw=,iv:mcKcx+yYG2fyyyVaUh6GPW5IdEwoVgAG8qgBg7yL7xs=,tag:N45e7TXV/qFUWM9y1/kqGQ==,type:str]
+    version: 3.13.3

@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: ghcr-pull
+    namespace: ai
+stringData:
+    .dockerconfigjson: ENC[AES256_GCM,data:JYy6Reenpn8xjkYtlTUEBNJYmZ1f2XBxJelNndYePIvygC7CP8XBB7oB7sbUHa0TJr+++q9rdE9EvubsIj/4ollVy7H7dCfKl7BRvwCA88oen6FmK7xbo4kXxyHZlD+wr8sEDeMoLZURJ59qpecqtrF645/lpqyUs3SIK+7Mvwep1BHxXVX2IUNVWG1DSkEjLLWXAjDy1CLrWxf6k8WP+VTjzG5ZnxNOljprByLG1SoF+WE=,iv:6poUycTnO3alVRThh4qOWL/3IOISXqJpoviE6iPa5Qo=,tag:8oSZPNu3oFhneV0zNlQkbw==,type:str]
+type: kubernetes.io/dockerconfigjson
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBvN0NNM2dVU3ZyZUhvbFU5
+            a2FkM3JWUXZ1emxrOCtIV1M5TEZVaTdXbEFNClE5ckFPUDVMbENzb3luUmlZYVRF
+            QmZlb3I5c0F2blRwdGZ0ZWdjc3NEcUUKLS0tIHk5K0F0T2lqT25GMXRSL3ArSE83
+            R1czV1RJaWp6My9Sb2I4NmNKRkY4WmsKrWDPbkH5jdmFnLk7NboFEaxrnmG/kslf
+            a1EgQa0s0k9hEDAGipKr7U7hbZ4C00rlEDDLuQKlXPfjqKSVHF6tJg==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-09T00:52:34Z"
+    mac: ENC[AES256_GCM,data:eGg8nTIOhV+FRTeqJnYTtU/nj7r9YOsgKxC6klDlZjd/ukaauoDb9ZSh6w5B3rE+/Ld9EALKEhof37gy16QPNpJBjq1QP8bGgbO5ZWbirplFW9b9gjtasegel3ATgVhhd+23S2VG0lqS7ysYUZxuCA0bEgz09HbzoFWSZNkJoQc=,iv:i2j6JCS5uEcFo4QBk04KslfnyUMfB9aiXaajAe7eJhI=,tag:OGlGIh7M5Pr5qB17aSynBg==,type:str]
+    version: 3.13.3
