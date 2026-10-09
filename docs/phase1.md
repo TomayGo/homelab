@@ -66,7 +66,7 @@ chartのバージョンは、2026-10-09にRenovateのPRを反映したあとの�
 - [x] sync（2026-10-09、手順書の順）。12個すべてSynced / Healthy。sync前後でPodのUIDと再起動回数に変化なし
 - [x] Helm release Secretの削除（2026-10-09）。`helm list -A`は空。削除前の中身は`pve-1:/root/backups/iac-phase1-2026-10-09/helm-release-secrets.json`に退避した
 - [ ] 数日様子を見てから`automated`（`selfHeal: true`）を有効にする。`prune`は全アプリの取り込み後
-- [ ] `argocd-initial-admin-secret`の扱い（ログイン後に削除）
+- [x] `argocd-initial-admin-secret`の扱い：2026-10-09にユーザーがadminのパスワードを変えたあと削除した
 
 ## Phase 1の完了条件（2026-10-09時点）
 
