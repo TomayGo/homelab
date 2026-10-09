@@ -9,7 +9,8 @@ spec:
   primaryUpdateMethod: switchover
   imageName: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
   affinity:
-    podAntiAffinityType: preferred
+    # 2 インスタンスを必ず別ノードに置く
+    podAntiAffinityType: required
   bootstrap:
     initdb:
       database: netbox

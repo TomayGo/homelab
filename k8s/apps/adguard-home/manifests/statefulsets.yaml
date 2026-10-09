@@ -21,6 +21,14 @@ spec:
         app: agh
         role: primary
     spec:
+      # primary と replica を必ず別ノードに置く（app: agh 同士で避け合う）
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app: agh
       containers:
       - args:
         - --no-check-update
@@ -138,6 +146,14 @@ spec:
         app: agh
         role: replica
     spec:
+      # primary と replica を必ず別ノードに置く（app: agh 同士で避け合う）
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app: agh
       containers:
       - args:
         - --no-check-update

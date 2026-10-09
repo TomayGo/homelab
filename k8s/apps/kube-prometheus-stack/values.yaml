@@ -123,6 +123,8 @@ additionalPrometheusRulesMap:
           severity: warning
 alertmanager:
   alertmanagerSpec:
+    # 2 台を必ず別ノードに置く（既定の soft では同じノードに並ぶことがある）
+    podAntiAffinity: hard
     replicas: 2
     resources:
       requests:
@@ -172,6 +174,15 @@ grafana:
   persistence:
     enabled: false
   replicas: 2
+  # 2 台を必ず別ノードに置く
+  affinity:
+    podAntiAffinity:
+      requiredDuringSchedulingIgnoredDuringExecution:
+      - topologyKey: kubernetes.io/hostname
+        labelSelector:
+          matchLabels:
+            app.kubernetes.io/instance: kube-prometheus-stack
+            app.kubernetes.io/name: grafana
   resources:
     requests:
       cpu: 50m
@@ -306,6 +317,8 @@ prometheus:
       static_configs:
       - targets:
         - hostapd-external.monitoring.svc.cluster.local:9152
+    # 2 台を必ず別ノードに置く（既定の soft では同じノードに並ぶことがある）
+    podAntiAffinity: hard
     replicas: 2
     resources:
       requests:

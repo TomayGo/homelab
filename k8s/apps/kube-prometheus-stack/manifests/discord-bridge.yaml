@@ -22,6 +22,14 @@ spec:
       labels:
         app: discord-bridge
     spec:
+      # 2 台を必ず別ノードに置く
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app: discord-bridge
       containers:
       - command:
         - python3

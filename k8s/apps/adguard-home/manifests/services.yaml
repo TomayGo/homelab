@@ -53,6 +53,7 @@ metadata:
   annotations:
     tailscale.com/expose: 'true'
     tailscale.com/hostname: agh-primary
+    tailscale.com/proxy-class: agh
   name: agh-primary-tailnet
   namespace: dns
 spec:
@@ -104,6 +105,7 @@ metadata:
   annotations:
     tailscale.com/expose: 'true'
     tailscale.com/hostname: agh-replica
+    tailscale.com/proxy-class: agh
   name: agh-replica-tailnet
   namespace: dns
 spec:

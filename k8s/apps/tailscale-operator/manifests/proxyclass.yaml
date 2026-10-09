@@ -1,4 +1,4 @@
-# すべての Tailscale プロキシ（Connector / ProxyGroup / expose した Service）の resources。
+# すべての Tailscale プロキシ（Connector / ProxyGroup / expose した Service）の resources と配置。
 # values.yaml の proxyConfig.defaultProxyClass で既定にし、Connector と ProxyGroup には明示もしている
 apiVersion: tailscale.com/v1alpha1
 kind: ProxyClass
@@ -7,6 +7,44 @@ metadata:
 spec:
   statefulSet:
     pod:
+      # 同じ親（lan-router の 3 台、egress-pg の 2 台）のレプリカを必ず別ノードに置く
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                tailscale.com/managed: "true"
+            matchLabelKeys:
+            - tailscale.com/parent-resource
+      tailscaleContainer:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 80Mi
+          limits:
+            memory: 256Mi
+---
+# AGH の tailnet 用プロキシ（agh-primary / agh-replica）。親が別の Service なので default では避け合わない。
+# tailnet DNS の 2 本が同じノードで同時に落ちないよう、この 2 つを別ノードに置く
+apiVersion: tailscale.com/v1alpha1
+kind: ProxyClass
+metadata:
+  name: agh
+spec:
+  statefulSet:
+    pod:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchExpressions:
+              - key: tailscale.com/parent-resource
+                operator: In
+                values:
+                - agh-primary-tailnet
+                - agh-replica-tailnet
       tailscaleContainer:
         resources:
           requests:

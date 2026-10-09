@@ -20,6 +20,14 @@ spec:
       labels:
         app: thanos-query
     spec:
+      # 2 台を必ず別ノードに置く
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - topologyKey: kubernetes.io/hostname
+            labelSelector:
+              matchLabels:
+                app: thanos-query
       containers:
       - args:
         - query

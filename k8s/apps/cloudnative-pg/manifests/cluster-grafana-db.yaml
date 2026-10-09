@@ -5,7 +5,8 @@ metadata:
   namespace: monitoring
 spec:
   affinity:
-    podAntiAffinityType: preferred
+    # 2 インスタンスを必ず別ノードに置く
+    podAntiAffinityType: required
   bootstrap:
     initdb:
       database: grafana
