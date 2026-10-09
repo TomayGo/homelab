@@ -22,13 +22,15 @@
         hastate: started
         comment: game server
 
-    # 案：普段は pve-1 で動かし、pve-1 が落ちたときだけ他へ。非 strict なので全ノードが候補（failback は既定で有効）
+    # 普段は pve-1 で動かし、pve-1 が落ちたら pve-3 へ（failback は既定で有効）。
+    # pve-2 は dtv（6 GiB、パススルーで固定）と talos-cp-2（12 GiB）で埋まっていて mc（12 GiB）が入らないので候補から外す。
+    # 非 strict なので、pve-1 と pve-3 がどちらも使えないときは pve-2 でも動く
     - name: HA rule mc-prefer-pve-1
       community.proxmox.proxmox_cluster_ha_rules:
         name: mc-prefer-pve-1
         state: present
         type: node-affinity
         resources: vm:106
-        nodes: pve-1:2,pve-2:1,pve-3:1
+        nodes: pve-1:2,pve-3:1
         strict: false
         comment: game server prefers pve-1

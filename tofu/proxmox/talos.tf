@@ -1,8 +1,11 @@
 locals {
+  # memory（MiB）はホストごとに違う。pve-1 は ap + mc（HA、12 GiB）で埋まっているので 8 GiB のまま、
+  # pve-2 / pve-3 を増やして、どのノードが落ちても残り 2 台に Pod が収まるようにする（2026-10-09）。
+  # pve-3 は mc の HA 退避先（ansible/playbooks/ha.yml）なので、mc 12 GiB が入る余地を残して 11 GiB
   talos_vms = {
-    talos-cp-1 = { node = "pve-1", vm_id = 201, mac_lan = "BC:24:11:8F:20:15", mac_mesh = "BC:24:11:0D:3B:71" }
-    talos-cp-2 = { node = "pve-2", vm_id = 202, mac_lan = "BC:24:11:3A:B4:FF", mac_mesh = "BC:24:11:D8:91:1E" }
-    talos-cp-3 = { node = "pve-3", vm_id = 203, mac_lan = "BC:24:11:76:F1:9D", mac_mesh = "BC:24:11:D7:D8:FA" }
+    talos-cp-1 = { node = "pve-1", vm_id = 201, memory = 8192, mac_lan = "BC:24:11:8F:20:15", mac_mesh = "BC:24:11:0D:3B:71" }
+    talos-cp-2 = { node = "pve-2", vm_id = 202, memory = 12288, mac_lan = "BC:24:11:3A:B4:FF", mac_mesh = "BC:24:11:D8:91:1E" }
+    talos-cp-3 = { node = "pve-3", vm_id = 203, memory = 11264, mac_lan = "BC:24:11:76:F1:9D", mac_mesh = "BC:24:11:D7:D8:FA" }
   }
 }
 
@@ -39,7 +42,7 @@ resource "proxmox_virtual_environment_vm" "talos" {
   }
 
   memory {
-    dedicated = 8192
+    dedicated = each.value.memory
   }
 
   disk {
