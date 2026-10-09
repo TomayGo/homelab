@@ -14,7 +14,15 @@
         dest: /tmp
         remote_src: true
 
+    # check mode では展開されないので、コピーの代わりに「入れ替える予定」を表示する
+    - name: Install the node_exporter binary (check mode)
+      ansible.builtin.debug:
+        msg: "would install node_exporter {{ node_exporter_version }}"
+      changed_when: true
+      when: ansible_check_mode
+
     - name: Install the node_exporter binary
+      when: not ansible_check_mode
       ansible.builtin.copy:
         src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
         dest: /usr/local/bin/node_exporter
