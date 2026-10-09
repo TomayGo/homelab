@@ -1,4 +1,4 @@
-# Phase 3 実施記録（2026-10-09、apply前で停止中）
+# Phase 3 実施記録（2026-10-09完了）
 
 ## 構成（`tofu/talos/`）
 
@@ -26,10 +26,17 @@
 - `tofu plan`：`1 to import, 3 to add, 0 to change, 0 to destroy`。3つのaddは`talos_machine_configuration_apply`
 - planから生成した設定を取り出し、`talosctl apply-config --dry-run`で確認した：**3ノードとも`No changes`**
 
-## 残り（要確認）
+## apply（2026-10-09、ユーザー承認後）
 
-- [ ] `tofu apply`（secretsのimportと、3ノードへの`no_reboot`適用。dry-runで差分がないことは確認済み）
-- [ ] apply後に`tofu plan`が`No changes`になることを確認する
-- [ ] 暗号化された`terraform.tfstate`をコミットする
-- [ ] 平文の`tofu/talos/secrets.yaml`を削除する（元は`/root/talos-cluster/_out/`にもある）
-- [ ] 各ノードで`talosctl health`を確認する
+1. `-target=talos_machine_secrets.this`で、importだけを先に確定した
+2. 適用の直前に、3ノードのdry-runをもう一度実行し、`No changes`であることを確認した
+3. `talos_machine_configuration_apply`を1ノードずつ`-target`で適用し、ノードごとに`talosctl health`を確認した（3台ともOK。設定に差分がないので、再起動などは起きていない）
+4. 出力値（talosconfig）を保存するだけのapplyを行い、`tofu plan`が`No changes`になった
+5. 暗号化された`terraform.tfstate`をコミットした
+6. 平文の`tofu/talos/secrets.yaml`を削除した。元のファイルは`/root/talos-cluster/_out/secrets.yaml`にある。state を失ったときは、`sops -d secrets.enc.yaml > secrets.yaml`で戻してから再importする
+
+## Phase 3の完了条件
+
+- [x] 全ノードで`apply-config --dry-run`の差分がない
+- [x] `tofu plan`が`No changes`
+- [x] 暗号化されたstateがGitにコミットされている
