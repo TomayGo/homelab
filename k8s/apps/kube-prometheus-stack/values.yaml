@@ -77,6 +77,14 @@ additionalPrometheusRulesMap:
         for: 30s
         labels:
           severity: warning
+      - alert: PveExporterDown
+        annotations:
+          description: job=pve は残りの exporter で続くが、3 台とも落ちると pve_* がすべて消える
+          summary: 'PVE exporter is DOWN: {{ $labels.job }} {{ $labels.pve_exporter }} {{ $labels.instance }}'
+        expr: up{job=~"pve|pve-node"} == 0
+        for: 5m
+        labels:
+          severity: warning
       - alert: FrrExporterDown
         annotations:
           summary: '{{ $labels.node }} FRR Exporter is DOWN'
@@ -245,7 +253,9 @@ prometheus:
       static_configs:
       - targets:
         - adguard-exporter.dns.svc.cluster.local:9618
-    # クラスタ全体（ゲスト・ストレージ・HA など）は pve-1 の exporter から取る
+    # クラスタ全体（ゲスト・ストレージ・HA など）。どのノードの exporter も同じ内容を返すので 3 台とも取り、
+    # instance を共通にして pve_exporter だけが違う 3 本にする。thanos-query が pve_exporter を
+    # replica ラベルとして 1 本にまとめるので、1 台落ちても途切れない（以前は pve-1 だけで単一障害点だった）
     - job_name: pve
       metrics_path: /pve
       params:
@@ -258,8 +268,21 @@ prometheus:
         target:
         - localhost
       static_configs:
-      - targets:
+      - labels:
+          pve_exporter: pve-1
+        targets:
         - 192.168.1.79:9221
+      - labels:
+          pve_exporter: pve-2
+        targets:
+        - 192.168.1.80:9221
+      - labels:
+          pve_exporter: pve-3
+        targets:
+        - 192.168.1.81:9221
+      relabel_configs:
+      - target_label: instance
+        replacement: pve-cluster
     # ノード単位（onboot など）は、そのノード上のゲストのぶんしか返らないので 3 台とも取る
     - job_name: pve-node
       metrics_path: /pve

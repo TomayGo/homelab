@@ -94,7 +94,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "count(pve_up{id=~\"node/.*\"} == 1)",
+          "expr": "count(max by(id)(pve_up{id=~\"node/.*\"}) == 1)",
           "legendFormat": "",
           "refId": "A"
         }
@@ -415,7 +415,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "count((pve_up * on(id) group_left() pve_guest_info{name=~\"talos-.*\"}) == 1) or vector(0)",
+          "expr": "count((max by(id)(pve_up) * on(id) group_left() topk by(id)(1, pve_guest_info{name=~\"talos-.*\"})) == 1) or vector(0)",
           "legendFormat": "",
           "refId": "A"
         }
@@ -551,7 +551,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "max(label_replace((pve_memory_size_bytes{id=~\"node/.*\"} - pve_memory_usage_bytes{id=~\"node/.*\"}),\"node\",\"$1\",\"id\",\"node/(.*)\") unless on(node) (pve_guest_info * on(id) group_left() (pve_ha_state{id=~\"(qemu|lxc)/.*\",state=\"started\"} == 1))) / max(pve_memory_size_bytes * on(id) group_left() (pve_ha_state{id=~\"(qemu|lxc)/.*\",state=\"started\"} == 1))",
+          "expr": "max(label_replace((pve_memory_size_bytes{id=~\"node/.*\"} - pve_memory_usage_bytes{id=~\"node/.*\"}),\"node\",\"$1\",\"id\",\"node/(.*)\") unless on(node) (pve_guest_info * on(id) group_left() max by(id)(pve_ha_state{id=~\"(qemu|lxc)/.*\",state=\"started\"} == 1))) / max(pve_memory_size_bytes * on(id) group_left() max by(id)(pve_ha_state{id=~\"(qemu|lxc)/.*\",state=\"started\"} == 1))",
           "legendFormat": "",
           "refId": "A"
         }

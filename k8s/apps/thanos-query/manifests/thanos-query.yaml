@@ -35,6 +35,8 @@ spec:
         - --grpc-address=0.0.0.0:10901
         - --endpoint=dnssrv+_grpc._tcp.prometheus-operated.monitoring.svc.cluster.local
         - --query.replica-label=prometheus_replica
+        # PVE exporter の job=pve は 3 台から同じ系列を取っている（kube-prometheus-stack の values.yaml）
+        - --query.replica-label=pve_exporter
         image: quay.io/thanos/thanos:v0.42.4
         imagePullPolicy: IfNotPresent
         name: thanos-query
