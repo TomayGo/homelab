@@ -1,1 +1,7 @@
-{}
+# cloudnative-pg chart 0.29.1
+resources:
+  requests:
+    cpu: 10m
+    memory: 80Mi
+  limits:
+    memory: 160Mi

@@ -1,2 +1,11 @@
 # OAuth の認証情報は manifests/operator-oauth.enc.yaml（SOPS）。oauth.clientId を書くと chart が operator-oauth を生成して上書きするので書かない
-{}
+operatorConfig:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+proxyConfig:
+  # manifests/proxyclass.yaml。Connector / ProxyGroup / expose した Service のプロキシすべてに効く
+  defaultProxyClass: default

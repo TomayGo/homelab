@@ -5,6 +5,8 @@ metadata:
   namespace: netbox
 spec:
   instances: 2
+  # 再起動を伴う変更では、primary をその場で再起動せずレプリカへ切り替える
+  primaryUpdateMethod: switchover
   imageName: ghcr.io/cloudnative-pg/postgresql:18.4-system-trixie
   affinity:
     podAntiAffinityType: preferred
@@ -15,6 +17,12 @@ spec:
       encoding: UTF8
       localeCType: C
       localeCollate: C
+  resources:
+    requests:
+      cpu: 50m
+      memory: 144Mi
+    limits:
+      memory: 512Mi
   storage:
     storageClass: ceph-rbd
     size: 5Gi

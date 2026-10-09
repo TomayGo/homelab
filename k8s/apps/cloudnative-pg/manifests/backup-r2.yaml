@@ -6,6 +6,13 @@ metadata:
   namespace: monitoring
 spec:
   retentionPolicy: 30d
+  instanceSidecarConfiguration:
+    resources:
+      requests:
+        cpu: 20m
+        memory: 64Mi
+      limits:
+        memory: 256Mi
   configuration:
     destinationPath: s3://homelab-backup/cnpg/
     endpointURL: https://9ef73af0640464177e568a249ecb08be.r2.cloudflarestorage.com

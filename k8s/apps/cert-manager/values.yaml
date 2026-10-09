@@ -1,3 +1,23 @@
 # jetstack/cert-manager v1.21.2。Barman Cloud Plugin の前提（プラグインと CNPG の間の mTLS 証明書を発行する）
 crds:
   enabled: true
+resources:
+  requests:
+    cpu: 10m
+    memory: 64Mi
+  limits:
+    memory: 128Mi
+cainjector:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 64Mi
+    limits:
+      memory: 128Mi
+webhook:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 48Mi
+    limits:
+      memory: 128Mi

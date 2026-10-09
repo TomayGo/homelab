@@ -3,5 +3,6 @@ kind: Kustomization
 resources:
   - connector-proxygroup.yaml
   - namespace.yaml
+  - proxyclass.yaml
 generators:
   - secret-generator.yaml

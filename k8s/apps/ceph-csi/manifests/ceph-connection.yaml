@@ -23,3 +23,51 @@ kind: Driver
 metadata:
   name: rbd.csi.ceph.com
   namespace: ceph-csi-operator-system
+# operator が controller の Deployment と node の DaemonSet に反映する
+spec:
+  controllerPlugin:
+    resources:
+      plugin:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          memory: 128Mi
+      provisioner:
+        requests:
+          cpu: 10m
+          memory: 48Mi
+        limits:
+          memory: 128Mi
+      attacher:
+        requests:
+          cpu: 10m
+          memory: 48Mi
+        limits:
+          memory: 128Mi
+      resizer:
+        requests:
+          cpu: 10m
+          memory: 64Mi
+        limits:
+          memory: 128Mi
+      snapshotter:
+        requests:
+          cpu: 10m
+          memory: 48Mi
+        limits:
+          memory: 128Mi
+  nodePlugin:
+    resources:
+      plugin:
+        requests:
+          cpu: 10m
+          memory: 96Mi
+        limits:
+          memory: 256Mi
+      registrar:
+        requests:
+          cpu: 10m
+          memory: 32Mi
+        limits:
+          memory: 96Mi

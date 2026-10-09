@@ -12,6 +12,16 @@ existingSecret: netbox-config
 superuser:
   existingSecret: netbox-superuser
 
+# 実測（7日）: p95 1150Mi / 最大 1276Mi。chart 既定の resourcesPreset medium は limit 1536Mi で近すぎる
+resources:
+  requests:
+    cpu: 100m
+    memory: 1280Mi
+    ephemeral-storage: 50Mi
+  limits:
+    memory: 2Gi
+    ephemeral-storage: 2Gi
+
 # media の PVC が RWO なのでローリング更新しない
 updateStrategy:
   type: Recreate
@@ -50,6 +60,12 @@ cachingDatabase:
 # media の PVC が RWO なので worker を web と同じノードに置く
 worker:
   enabled: true
+  resources:
+    requests:
+      cpu: 10m
+      memory: 288Mi
+    limits:
+      memory: 512Mi
   affinity:
     podAffinity:
       requiredDuringSchedulingIgnoredDuringExecution:

@@ -4,6 +4,7 @@ metadata:
   name: lan-router
 spec:
   exitNode: false
+  proxyClass: default
   hostnamePrefix: lan-router
   replicas: 3
   subnetRouter:
@@ -17,5 +18,6 @@ kind: ProxyGroup
 metadata:
   name: egress-pg
 spec:
+  proxyClass: default
   replicas: 2
   type: egress

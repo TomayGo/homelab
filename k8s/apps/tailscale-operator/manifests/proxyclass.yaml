@@ -1,0 +1,16 @@
+# すべての Tailscale プロキシ（Connector / ProxyGroup / expose した Service）の resources。
+# values.yaml の proxyConfig.defaultProxyClass で既定にし、Connector と ProxyGroup には明示もしている
+apiVersion: tailscale.com/v1alpha1
+kind: ProxyClass
+metadata:
+  name: default
+spec:
+  statefulSet:
+    pod:
+      tailscaleContainer:
+        resources:
+          requests:
+            cpu: 10m
+            memory: 80Mi
+          limits:
+            memory: 256Mi

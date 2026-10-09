@@ -56,7 +56,8 @@ spec:
       wal_sender_timeout: 5s
     syncReplicaElectionConstraint:
       enabled: false
-  primaryUpdateMethod: restart
+  # 再起動を伴う変更では、primary をその場で再起動せずレプリカへ切り替える（restart だと約4分止まった）
+  primaryUpdateMethod: switchover
   primaryUpdateStrategy: unsupervised
   probes:
     liveness:
@@ -71,7 +72,12 @@ spec:
     synchronizeReplicas:
       enabled: true
     updateInterval: 30
-  resources: {}
+  resources:
+    requests:
+      cpu: 50m
+      memory: 160Mi
+    limits:
+      memory: 512Mi
   smartShutdownTimeout: 180
   startDelay: 3600
   stopDelay: 1800

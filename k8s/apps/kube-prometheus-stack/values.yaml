@@ -124,6 +124,12 @@ additionalPrometheusRulesMap:
 alertmanager:
   alertmanagerSpec:
     replicas: 2
+    resources:
+      requests:
+        cpu: 10m
+        memory: 48Mi
+      limits:
+        memory: 128Mi
   config:
     global:
       resolve_timeout: 5m
@@ -166,6 +172,12 @@ grafana:
   persistence:
     enabled: false
   replicas: 2
+  resources:
+    requests:
+      cpu: 50m
+      memory: 640Mi
+    limits:
+      memory: 1280Mi
   sidecar:
     dashboards:
       enabled: true
@@ -173,12 +185,48 @@ grafana:
       labelValue: "1"
     datasources:
       isDefaultDatasource: false
+    # dashboard / datasources の両サイドカー共通
+    resources:
+      requests:
+        cpu: 10m
+        memory: 112Mi
+      limits:
+        memory: 192Mi
 kubeControllerManager:
   enabled: false
 kubeProxy:
   enabled: false
+kube-state-metrics:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 48Mi
+    limits:
+      memory: 128Mi
 kubeScheduler:
   enabled: false
+prometheus-node-exporter:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 96Mi
+prometheusOperator:
+  resources:
+    requests:
+      cpu: 10m
+      memory: 80Mi
+    limits:
+      memory: 160Mi
+  # Prometheus / Alertmanager の config-reloader 共通
+  prometheusConfigReloader:
+    resources:
+      requests:
+        cpu: 10m
+        memory: 48Mi
+      limits:
+        memory: 128Mi
 prometheus:
   prometheusSpec:
     additionalScrapeConfigs:
@@ -259,6 +307,12 @@ prometheus:
       - targets:
         - hostapd-external.monitoring.svc.cluster.local:9152
     replicas: 2
+    resources:
+      requests:
+        cpu: 100m
+        memory: 1920Mi
+      limits:
+        memory: 3Gi
     retention: 15d
     retentionSize: 18GB
     storageSpec:
@@ -272,6 +326,12 @@ prometheus:
           storageClassName: ceph-rbd
     thanos:
       image: quay.io/thanos/thanos:v0.42.4
+      resources:
+        requests:
+          cpu: 10m
+          memory: 80Mi
+        limits:
+          memory: 160Mi
   service:
     additionalPorts:
     - name: grpc
