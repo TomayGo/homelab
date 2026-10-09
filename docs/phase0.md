@@ -88,7 +88,7 @@ Phase 0時点の一覧。Phase 1でArgo CDの管理に移し、Helm releaseは�
 
 ## 0-3〜0-6
 
-- リポジトリ：https://github.com/TomayGo/homelab （private）
+- リポジトリ：https://github.com/TomayGo/homelab （2026-10-09にpublicにした）
 - deploy key：「argocd (read-only)」として登録済み。秘密鍵はArgo CDのリポジトリSecretとしてSOPSで暗号化し、`k8s/bootstrap/repo-homelab.enc.yaml`に置いた。Phase 1で`sops -d … | kubectl apply -f -`する。平文の元ファイルは`pve-1:~/.config/homelab/argocd-deploy-key`
 - age：公開鍵は`age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz`。秘密鍵は`pve-1:~/.config/sops/age/keys.txt`
 - OpenTofu：v1.13.1。encryptionブロックで`var.state_passphrase`を参照できることを確認した（未確認事項#9は解決）。パスフレーズは`pve-1:~/.config/homelab/tofu-state-passphrase`（40文字）
