@@ -28,7 +28,8 @@ resource "proxmox_virtual_environment_vm" "talos" {
   # 手作業でマイグレーションしても再作成させない（migrate=false のまま node_name が変わると作り直しになる）
   migrate = false
 
-  # 再起動が必要な変更は apply を失敗させる
+  # 再起動が必要な変更（memory など）は自動で再起動しない。apply は警告を出して pending に書くだけなので、
+  # 1 台ずつ cordon / drain して qm reboot <vmid> で反映する（2026-10-09 のメモリ増設で確認）
   reboot_after_update = false
 
   agent {
