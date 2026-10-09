@@ -27,11 +27,8 @@
         - /usr/local/bin/metrics.sh
         - /usr/local/bin/wifi-watchdog.sh
       mc:
-        - /etc/systemd/system/minecraft.service
         - /etc/netplan/50-cloud-init.yaml
         - /etc/default/grub
-        - /home/tomaygo/mc-server/server.properties
-        - /home/tomaygo/mc-server/user_jvm_args.txt
   tasks:
     - name: Fetch files
       ansible.builtin.fetch:
