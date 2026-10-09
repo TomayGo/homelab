@@ -1,0 +1,28 @@
+# Phase 2（下書き）。cert-manager → plugin-barman-cloud の順で sync する
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cert-manager
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: cert-manager
+  sources:
+  - repoURL: https://charts.jetstack.io
+    chart: cert-manager
+    targetRevision: v1.21.2
+    helm:
+      releaseName: cert-manager
+      valueFiles:
+      - $values/k8s/apps/cert-manager/values.yaml
+  - repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    ref: values
+  - repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    path: k8s/apps/cert-manager/manifests
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true
