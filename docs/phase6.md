@@ -28,7 +28,7 @@
 
 ### 構成
 
-- `vars/guests.yml`：8ゲスト（VM 101 dtv、103 ap、106 mc、LXC 500、801〜803、903）の管理項目。回収した設定から生成した。Talos VMは`tofu/proxmox`で管理するので含めない
+- `vars/guests.yml`：5ゲスト（VM 101 dtv、103 ap、106 mc、LXC 500、903）の管理項目。回収した設定から生成した。作成時は801〜803を含む8ゲストだったが、削除に合わせて外した。Talos VMは`tofu/proxmox`で管理するので含めない
   - 管理する項目（VM）：name、cores、sockets、cpu、memory、balloon、onboot、agent、bios、machine、ostype、scsihw、numa、boot、net*
   - 管理する項目（LXC）：hostname、cores、memory、swap、onboot、features、nameserver、net*、ostype
   - 管理しない項目：ディスク、`hostpci*`、`usb*`、`dev*`（パススルー）、`smbios1`、`vmgenid`
@@ -37,7 +37,7 @@
   - 違いがあれば、その項目だけを`PUT /nodes/<node>/<type>/<vmid>/config`で更新する
   - 上記の理由から、`proxmox_kvm`と`proxmox`は使っていない
 - 結果
-  - `--check --diff`：8ゲストとも差分なし（`changed=0`）
+  - `--check --diff`：作成時の8ゲストとも差分なし（`changed=0`）。801〜803を外したあとの5ゲストでも`changed=0`
   - わざと違う定義（mcのmemory）を渡したcheck modeでは、差分を検出し、更新はスキップされた
   - 本実行：`changed=0`。ゲストの設定ファイルのハッシュも変わらなかった
 

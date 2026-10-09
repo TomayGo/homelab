@@ -17,9 +17,11 @@
 | sysctl | `/etc/sysctl.d/90-usb4-ecmp.conf` | `sysctl --system` |
 | thunderbolt_net | udevルール（85、99）、modules-load、`thunderbolt-ecmp.service`と`-setup.sh`、`thunderbolt-net-recover.sh` | udev reload、daemon-reload |
 | thunderbolt_irq | `thunderbolt-irq-affinity.sh`（PCIのバス番号に依存しない。データ用の割り込みを最大60秒待ち、4つ固定できなければ失敗する）、unit | 再実行 |
-| node_exporter | バイナリ（v1.11.1。バージョンが違うときだけ入れ直す）、unit | 再起動 |
-| frr_exporter | バイナリ（v1.11.0）、unit | 再起動 |
-| pve_exporter | `/opt/pve-exporter`のvenv（prometheus-pve-exporter 3.9.0）、`pve.yml`（トークンはSOPS）、unit | 再起動 |
+| node_exporter | バイナリ（v1.12.1。バージョンが違うときだけ入れ直す）、unit | 再起動 |
+| frr_exporter | バイナリ（v1.12.0）、unit | 再起動 |
+| pve_exporter | `/opt/pve-exporter`のvenv（prometheus-pve-exporter 3.10.1）、`pve.yml`（トークンはSOPS）、unit | 再起動 |
+
+exporterのバージョンは、2026-10-09にRenovateのPRで更新したあとの値（取り込んだ時点では1.11.1、1.11.0、3.9.0）。
 
 - unitは3つとも、すでに`Restart=always`になっている（手順書の`Restart=on-failure`より強い設定）
 - 管理対象外にしたもの

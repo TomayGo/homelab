@@ -5,11 +5,11 @@
 | 確認項目 | 結果 | 後のフェーズへの影響 |
 |---|---|---|
 | PVE | 9.2.20（kernel 7.0.14-19-pve）、3ノードとも同じ | HA ruleとbpgのHA対応マイグレーションを使える |
-| Talos | v1.14.1（3ノード）。手元の`talosctl`は v1.13.6 で古い | Phase 3の`talos_version`は v1.14.1。作業前に`talosctl`を v1.14.x に上げる |
+| Talos | v1.14.1（3ノード）。手元の`talosctl`は v1.13.6 で古かった（Phase 3の前にv1.14.1へ更新した） | Phase 3で使う。実際には、`talos_version`（設定生成の契約）をv1.13.6にした（`docs/phase3.md`） |
 | Kubernetes | v1.36.2 | Phase 3の`kubernetes_version` |
 | `secrets.yaml` | `/root/talos-cluster/_out/secrets.yaml` にある。稼働中の設定とcluster id/secret、各CA、token、secretboxがすべて一致することを確認済み | Phase 3でそのままimportできる |
-| Talos VMのISO | 3台とも`ide2`に`talos-v1.13.6-qemu-guest-agent-amd64.iso`がつながったまま | Phase 4のimportで差分にならないよう、HCLに書くか事前に外す |
-| CNPG | operator 1.30.0（chart cloudnative-pg 0.29.0）、PostgreSQL 18.4、Cluster `monitoring/grafana-db` 2 instances、backup設定なし。cert-managerは未導入 | Barman Cloud Pluginを使う。cert-managerが要るなら先に入れる |
+| Talos VMのISO | 3台とも`ide2`に`talos-v1.13.6-qemu-guest-agent-amd64.iso`がつながったまま | Phase 4では、`cdrom`を`ignore_changes`で管理対象から外して対応した（`docs/phase4.md`） |
+| CNPG | operator 1.30.0（chart cloudnative-pg 0.29.0）、PostgreSQL 18.4、Cluster `monitoring/grafana-db` 2 instances、backup設定なし。cert-managerは未導入。operatorは2026-10-09にRenovateで1.30.1へ更新した | Barman Cloud Pluginを使う。cert-managerが必要だったので、Phase 2で先に入れた |
 
 ### Helm release
 
@@ -19,6 +19,8 @@
 | kube-prometheus-stack | monitoring | kube-prometheus-stack-87.17.0（rev 10） | v0.92.1 |
 | metallb | metallb-system | metallb-0.16.1 | v0.16.1 |
 | tailscale-operator | tailscale | tailscale-operator-1.98.9 | v1.98.9 |
+
+Phase 0時点の一覧。Phase 1でArgo CDの管理に移し、Helm releaseは削除した。chartのバージョンは、その後Renovateで更新している（`docs/phase1.md`）。
 
 ### Helm管理外のリソース（Phase 1でGitに入れる対象）
 
@@ -52,14 +54,14 @@
 | 103 | ap | pve-1 | running | local-lvm 32G | `hostpci`×3 |
 | 106 | mc | pve-1 | running | ceph-pool 64G | ゲームサーバ。HA |
 | 201〜203 | talos-cp-1〜3 | pve-1/2/3 | running | ceph-pool 32G | HA対象外 |
-| 500 | discordbots | pve-2 | running | ceph-pool 16G | LXC。HA。→ k8sへ移行予定 |
-| 801〜803 | llama-rpc-1〜3 | 各ノード | stopped | local-lvm 24G | LXC |
-| 903 | netbox | pve-3 | running | ceph-pool 32G | LXC。HA。NetBox v4.3.2。→ k8sへ移行予定 |
+| 500 | discordbots | pve-2 | running | ceph-pool 16G | LXC。開発環境としてHA対象外で残した（本番のpricetrackerはk8sへ移行済み） |
+| 801〜803 | llama-rpc-1〜3 | 各ノード | stopped | local-lvm 24G | LXC。2026-10-09に削除した |
+| 903 | netbox | pve-3 | running | ceph-pool 32G | LXC。NetBox v4.3.2。k8sへ移行済みで、停止して残している |
 
 - VM 105（ai）は2026-10-09に削除した（ユーザー指示。GPUは取り外し済みだった）。
-- HAリソースは`ct:500`、`ct:903`、`vm:106`の3つだった。手順書の前提（HAはゲームサーバだけ）に合わせ、2026-10-09に500と903をHAから外した。現在は`vm:106`だけ。HA ruleはまだない。
+- HAリソースは`ct:500`、`ct:903`、`vm:106`の3つだった。手順書の前提（HAはゲームサーバだけ）に合わせ、2026-10-09に500と903をHAから外した。現在は`vm:106`だけ。HA ruleは、Phase 6で`mc-prefer-pve-1`（pve-1を優先、非strict）を作った。
 - CT903 netbox：k8sの`netbox` namespaceに移行した（`k8s/apps/netbox/`）。CTは停止し、`onboot 0`にしてロールバック用に残してある。
-- CT500 discordbots：本番の`pricetracker`はk8sの`pricetracker` namespaceへ移す（`k8s/apps/pricetracker/`）。CTは開発環境としてHA対象外のまま動かす。
+- CT500 discordbots：本番の`pricetracker`は、2026-10-09にk8sの`pricetracker` namespaceへ移した（`k8s/apps/pricetracker/`）。CTは開発環境としてHA対象外のまま動かす。
 
 ## 0-2. バックアップ
 

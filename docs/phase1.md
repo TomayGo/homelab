@@ -5,7 +5,7 @@
 - Argo CD：chart `argo/argo-cd` 10.10.1（v3.5.4）。初回は`k8s/bootstrap/values.yaml`で`helm install`した。以後はApplication `argocd`で自己管理する
 - UI：http://argocd.ayu-mamba.ts.net （tailnetのみ、TLSなし）
 - KSOPS：v4.5.1。repo-serverのinitContainerで`ksops install /custom-tools`を実行し、ksopsだけを追加する（kustomizeはArgo CD同梱のものを使う）。age鍵はSecret `argocd/sops-age`
-- app-of-apps：ルートは`k8s/bootstrap/root.yaml`。子は`k8s/root/*.yaml`の11個
+- app-of-apps：ルートは`k8s/bootstrap/root.yaml`。子は`k8s/root/*.yaml`の13個（Phase 1で11個、Phase 2でcert-managerとplugin-barman-cloudを足した）
 - 全Applicationの共通設定
   - `syncOptions: ServerSideApply=true`
   - `automated`は付けていない
@@ -13,16 +13,20 @@
 | Application | 種類 | namespace | release / chart |
 |---|---|---|---|
 | argocd | Helm + manifests | argocd | argocd / argo-cd 10.10.1 |
-| kube-prometheus-stack | Helm + manifests | monitoring | kube-prometheus-stack / 87.17.0 |
+| kube-prometheus-stack | Helm + manifests | monitoring | kube-prometheus-stack / 87.21.0 |
 | thanos-query | manifests | monitoring | - |
-| cloudnative-pg | Helm + manifests | cnpg-system（`grafana-db`はmonitoring） | cnpg / cloudnative-pg 0.29.0 |
+| cloudnative-pg | Helm + manifests | cnpg-system（`grafana-db`はmonitoring） | cnpg / cloudnative-pg 0.29.1 |
 | adguard-home | manifests | dns | - |
 | netbox | Helm + manifests | netbox | netbox / netbox 8.3.91 |
 | pricetracker | manifests | pricetracker | - |
 | openwebui | manifests | ai | - |
 | metallb | Helm + manifests | metallb-system | metallb / metallb 0.16.1 |
 | ceph-csi | manifests（install.yaml v1.0.4） | ceph-csi-operator-system | - |
-| tailscale-operator | Helm + manifests | tailscale | tailscale-operator / 1.98.9 |
+| tailscale-operator | Helm + manifests | tailscale | tailscale-operator / 1.102.4 |
+| cert-manager | Helm + manifests | cert-manager | cert-manager / v1.21.2 |
+| plugin-barman-cloud | Helm + manifests | cnpg-system | plugin-barman-cloud / 0.8.1 |
+
+chartのバージョンは、2026-10-09にRenovateのPRを反映したあとの値。取り込んだ時点では、kube-prometheus-stackが87.17.0、cloudnative-pgが0.29.0、tailscale-operatorが1.98.9だった。cert-managerとplugin-barman-cloudは、Phase 2で足した。
 
 ## 取り込み時に変えたこと
 
