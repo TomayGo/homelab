@@ -1,4 +1,4 @@
-# ゲストの内部（手順書 6-4）。ap（hostapd、ネットワーク、Wi-Fi ドライバ、監視）と mc（Minecraft）
+# ゲストの内部（手順書 6-4）。ap（hostapd、ネットワーク、Wi-Fi ドライバ、監視）と mc（OS の設定だけ。Minecraft サーバ自体の設定は管理しない）
 - name: Guest internals
   hosts: guests
   gather_facts: false
@@ -6,8 +6,3 @@
   roles:
     - host_files
 
-- name: Minecraft
-  hosts: mc
-  gather_facts: false
-  roles:
-    - minecraft

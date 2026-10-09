@@ -103,10 +103,10 @@
   - `roles/host_files`：`host_vars/<host>/host_files.yml`の一覧（パス、所有者、権限、変更時のhandler）に従って、`ansible/host_files/<host>/`のファイルを配る
     - Wi-Fiのパスフレーズ（`sae_password`、3つの設定で同じ値）は`host_vars/ap/wifi.sops.yaml`。テンプレートのタスクはdiffを出さない
     - ネットワーク（netplan）を変えたときのhandlerは`netplan generate`まで。反映は実機のそばで手で行う
-  - `roles/minecraft`：`server.properties`をキーごとに`lineinfile`で管理する（Minecraftが起動のたびに先頭の日時のコメントを書き直すため）。`rcon.password`は`host_vars/mc/minecraft.sops.yaml`。サーバの再起動は自動ではしない
+  - Minecraftサーバ自体の設定（`server.properties`、`user_jvm_args.txt`、`minecraft.service`）は、2026-10-09にユーザーの指示で管理対象から外した。mcで管理するのはOSの設定（netplan、grub）だけ
 - 対象
   - ap：hostapdの設定3つとsystemdの上書き2つ、netplan、networkdの3ファイル（MLD snoopingの無効化を含む）、modprobe 4つ、sysctl、grub、wifi-exporter、wifi-watchdog（service/timer/スクリプト）、metrics.sh、vpnserver.service（unitのファイルだけ。無効のまま）
-  - mc：minecraft.service、netplan、grub、user_jvm_args.txt、server.properties（60キー）
+  - mc：netplan、grub
   - 対象外：CT500（開発環境）、CT903（停止中の旧NetBox）
 - `--check --diff`：ap、mcとも`changed=0`
 
@@ -118,6 +118,6 @@
 
 ## Phase 6の完了条件
 
-- [x] 全ゲストで`--check --diff`が`changed=0`（`guests.yml`：5台、`guests-internal.yml`：ap、mc）
+- [x] 全ゲストで`--check --diff`が`changed=0`（`guests.yml`：5台、`guests-internal.yml`：ap、mc（OSの設定のみ））
 - [x] パススルーを使うVMで`hostpci`が維持されることを確認した（テストVMで検証）
 - [x] ゲームサーバのHA設定の管理方法が決まり、文書化されている（`playbooks/ha.yml`）

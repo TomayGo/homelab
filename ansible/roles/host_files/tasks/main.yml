@@ -1,5 +1,5 @@
 # host_vars/<host>/host_files.yml の一覧を配る。中身は ansible/host_files/<host>/<パス>（template: true のものは .j2）
-# 既存のディレクトリの所有者と権限は変えない（/home/tomaygo/mc-server などがあるため）。ないときだけ作る
+# 既存のディレクトリの所有者と権限は変えない（root 以外が持つディレクトリもあるため）。ないときだけ作る
 - name: Directories
   ansible.builtin.file:
     path: "{{ item.path | dirname }}"
