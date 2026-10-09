@@ -1,14 +1,26 @@
 #!/bin/bash
 # Pin thunderbolt NHI data IRQs to separate CPUs to avoid contention.
-# NHI#1 ({{ tb_nhi_pci_bus }}:00.5) vectors 2,3 -> CPU 8,9 ; NHI#2 ({{ tb_nhi_pci_bus }}:00.6) vectors 2,3 -> CPU 10,12
+# NHI#1 (<bus>:00.5) vectors 2,3 -> CPU 8,9 ; NHI#2 (<bus>:00.6) vectors 2,3 -> CPU 10,12
 #
-# IRQs are identified via /proc/interrupts (PCI address + edge vector), not
+# IRQs are identified via /proc/interrupts (PCI function + edge vector), not
 # /proc/irq/N/actions: on this kernel /proc/irq/N/actions does not exist as a
 # flat file (each handler gets its own subdirectory instead), so the previous
 # grep-on-actions approach silently matched nothing.
+#
+# The PCI bus number is not hard-coded: on pve-3 it changed from ca to c8 when the
+# eGPU was removed (2026-08) and the script silently pinned nothing from then on.
+# Only the NHI controllers register "thunderbolt" IRQs, so function .5/.6 is enough.
+#
+# The data vectors (2,3) are registered only after the thunderbolt network comes up,
+# later than vectors 0,1. Wait for all four (up to 60 s) instead of the first match;
+# on pve-2 the old 5 s wait ran before they existed and pinned 0/4.
 
-for i in 1 2 3 4 5; do
-  grep -q 'thunderbolt' /proc/interrupts 2>/dev/null && break
+want=4
+data_vectors() {
+  grep -cE '00\.[56] +[23]-edge +thunderbolt' /proc/interrupts 2>/dev/null
+}
+for i in $(seq 1 60); do
+  [ "$(data_vectors)" -ge "$want" ] && break
   sleep 1
 done
 
@@ -16,11 +28,18 @@ pinned=0
 while read -r line; do
   irq=$(echo "$line" | awk -F: '{print $1}' | tr -d ' ')
   case "$line" in
-    *{{ tb_nhi_pci_bus }}:00.5*2-edge*thunderbolt*) echo 8  > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
-    *{{ tb_nhi_pci_bus }}:00.5*3-edge*thunderbolt*) echo 9  > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
-    *{{ tb_nhi_pci_bus }}:00.6*2-edge*thunderbolt*) echo 10 > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
-    *{{ tb_nhi_pci_bus }}:00.6*3-edge*thunderbolt*) echo 12 > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
+    *00.5*[[:space:]]2-edge*thunderbolt*) echo 8  > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
+    *00.5*[[:space:]]3-edge*thunderbolt*) echo 9  > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
+    *00.6*[[:space:]]2-edge*thunderbolt*) echo 10 > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
+    *00.6*[[:space:]]3-edge*thunderbolt*) echo 12 > "/proc/irq/$irq/smp_affinity_list" 2>/dev/null && pinned=$((pinned+1)) ;;
   esac
 done < <(grep thunderbolt /proc/interrupts)
 
-logger -t thunderbolt-irq-affinity "pinned $pinned/4 thunderbolt data IRQs"
+logger -t thunderbolt-irq-affinity "pinned $pinned/$want thunderbolt data IRQs"
+
+# 4つすべてを固定できなかったら失敗にして、unit の failed で気づけるようにする
+# （/proc/interrupts の形式やバス番号が変わると、黙って何も固定しなくなることが過去にあった）
+if [ "$pinned" -lt "$want" ]; then
+  logger -t thunderbolt-irq-affinity -p user.err "expected $want thunderbolt data IRQs, pinned $pinned; check /proc/interrupts"
+  exit 1
+fi

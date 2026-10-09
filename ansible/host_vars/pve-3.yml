@@ -18,5 +18,3 @@ mesh_ecmp_routes:
     nexthops:
       - { via: 10.0.4.9, dev: tb0 }
       - { via: 10.0.4.5, dev: tb1 }
-# Thunderbolt NHI の PCI バス番号（IRQ 固定用）
-tb_nhi_pci_bus: "ca"
