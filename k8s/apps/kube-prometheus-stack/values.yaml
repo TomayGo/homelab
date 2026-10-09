@@ -253,7 +253,7 @@ prometheus:
               storage: 20Gi
           storageClassName: ceph-rbd
     thanos:
-      image: quay.io/thanos/thanos:v0.42.0
+      image: quay.io/thanos/thanos:v0.42.4
   service:
     additionalPorts:
     - name: grpc
