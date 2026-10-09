@@ -32,7 +32,7 @@ spec:
         envFrom:
         - secretRef:
             name: discord-bridge-config
-        image: python:3.13-slim
+        image: python:3.14-slim
         imagePullPolicy: IfNotPresent
         name: bridge
         ports:
