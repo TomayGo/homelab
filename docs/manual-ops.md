@@ -46,3 +46,11 @@
 
 - `hostpci`（`101 dtv`、`103 ap`）と、`/etc/modprobe.d/vfio.conf`、`/etc/modules-load.d/vfio.conf`（pve-2、pve-3）は、Ansibleでは触らない
 - dtvのiGPUは、ACPI VFCTから取り出したVBIOSを`romfile`として渡している
+
+## ceph-csi-operatorのアップグレード
+
+- Renovateの対象外にしている。イメージのタグだけを上げると、install.yamlに含まれるCRDと食い違うため
+- 手順
+  1. リリースタグ（`main`ではない）のinstall.yamlを取得して、`k8s/apps/ceph-csi/manifests/operator-install-<版>.yaml`として置く。古いファイルは消し、kustomizationを書き換える
+  2. Argo CDの差分で、CRDとDeploymentの変更を確認してからsyncする
+- `main`のinstall.yaml（`:latest`イメージ）は使わない。2026-07-20に、これで壊れたことがある
