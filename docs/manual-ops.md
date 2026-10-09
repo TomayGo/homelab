@@ -12,10 +12,7 @@
   ```
 
 - 丸ごとのバックアップは`tar czf etc-pve-$(date +%F).tgz -C / etc/pve`で取る（`priv/`に鍵があるので、置き場所の権限に注意）
-- `storage.cfg`に使えない定義が2つ残っている（2026-10-09時点。消すかどうかは未決定）
-  - `local-nvme`：存在しない`vg_nvme`を参照している。このせいで`qm destroy --destroy-unreferenced-disks 1`が途中で失敗する
-  - `data`：存在しないノード`pve`に限定されている
-- `/etc/pve/nodes/pve/`（存在しないノード`pve`）も空のまま残っている
+- `storage.cfg`の使えない定義（`local-nvme`、`data`）と、存在しないノードの`/etc/pve/nodes/pve/`は、2026-10-09に削除した。削除前のものは`pve-1:/root/backups/cleanup-2026-10-09/`にある
 
 ### vzdumpの定期ジョブ
 
@@ -29,7 +26,7 @@ pvesh create /cluster/backup --id backup-every3d --schedule '*-*-1/3 10:00' \
 ```
 
 - 対象：101 dtv、103 ap、106 mc、500 discordbots。どれもRepoからは戻せない（ドライバのビルド、SoftEther VPNとZeroTierの状態、ワールドや録画のデータなど）
-- 対象外：Talos VM（201〜203）。OpenTofuとArgo CDで作り直せるうえ、PVCはVMのディスクではないのでvzdumpに入らない。CT903（旧NetBox）は片付けで消す予定
+- 対象外：Talos VM（201〜203）。OpenTofuとArgo CDで作り直せるうえ、PVCはVMのディスクではないのでvzdumpに入らない。CT903（旧NetBox）は2026-10-09に削除した
 - 日付が1、4、7、…、31日の10時に取る。31日のある月は、31日と翌月1日が続けて実行される
 - CIFSへのvzdumpは毎回フルバックアップになる（差分を取るにはPBSが要る）。1回約60GBで、3世代で約180GB
 - 保存先はWindowsのPCなので、10時にPCが起きていないと失敗する

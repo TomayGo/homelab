@@ -28,7 +28,7 @@
 
 ### 構成
 
-- `vars/guests.yml`：5ゲスト（VM 101 dtv、103 ap、106 mc、LXC 500、903）の管理項目。回収した設定から生成した。作成時は801〜803を含む8ゲストだったが、削除に合わせて外した。Talos VMは`tofu/proxmox`で管理するので含めない
+- `vars/guests.yml`：4ゲスト（VM 101 dtv、103 ap、106 mc、LXC 500）の管理項目。回収した設定から生成した。作成時は801〜803を含む8ゲストだったが、削除に合わせて外した。903も2026-10-09の片付けで削除して外した。Talos VMは`tofu/proxmox`で管理するので含めない
   - 管理する項目（VM）：name、cores、sockets、cpu、memory、balloon、onboot、agent、bios、machine、ostype、scsihw、numa、boot、net*
   - 管理する項目（LXC）：hostname、cores、memory、swap、onboot、features、nameserver、net*、ostype
   - 管理しない項目：ディスク、`hostpci*`、`usb*`、`dev*`（パススルー）、`smbios1`、`vmgenid`
@@ -44,7 +44,7 @@
 ### 気づいたこと
 
 - LXC 801〜803（llama-rpc、停止中）は2026-10-09にユーザーの指示で削除した。801の固定IP（192.168.1.90）がMetalLBのプールと重なっていた問題も、これでなくなった。削除前のvzdumpも、ユーザーの指示で各ノードのローカルと`pc-backups`の両方から削除した（使わないため）
-- VM 101 dtvに、未使用のディスク（`unused0: vm-101-disk-0`、`unused1: vm-101-disk-2`、各4MB）が残っている
+- VM 101 dtvに、未使用のディスク（`unused0: vm-101-disk-0`、`unused1: vm-101-disk-2`、各4MB）が残っている。2026-10-09の片付けで削除した（中身は空だった）
 
 ## 6-4 ゲストの内部（完了）
 
@@ -107,7 +107,7 @@
 - 対象
   - ap：hostapdの設定3つとsystemdの上書き2つ、netplan、networkdの3ファイル（MLD snoopingの無効化を含む）、modprobe 4つ、sysctl、grub、wifi-exporter、wifi-watchdog（service/timer/スクリプト）、metrics.sh、vpnserver.service（unitのファイルだけ。無効のまま）
   - mc：netplan、grub
-  - 対象外：CT500（開発環境）、CT903（停止中の旧NetBox）
+  - 対象外：CT500（開発環境）、CT903（旧NetBox。2026-10-09に削除）
 - `--check --diff`：ap、mcとも`changed=0`
 
 ### 気づいたこと

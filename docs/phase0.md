@@ -43,8 +43,8 @@ Phase 0時点の一覧。Phase 1でArgo CDの管理に移し、Helm releaseは�
 - **vzdumpの定期ジョブは存在しない**（`/etc/pve/jobs.cfg`がない）。PBSもない。2026-10-09に、`pc-backups`へ3日ごとのジョブを作った（`docs/manual-ops.md`）
 - バックアップ可能なストレージは各ノードの`local`（ルートLV上の`/var/lib/vz`、94GB）だけ。全損時には残らない。
 - `storage.cfg`に使えない定義が2つある。
-  - `local-nvme`：`vg_nvme`が存在しない。このせいで`qm destroy --destroy-unreferenced-disks`が失敗する。
-  - `data`：存在しないノード`pve`に限定されている。`/etc/pve/nodes/pve/`も空のまま残っている。
+  - `local-nvme`：`vg_nvme`が存在しない。このせいで`qm destroy --destroy-unreferenced-disks`が失敗する。2026-10-09の片付けで削除した。
+  - `data`：存在しないノード`pve`に限定されている。`/etc/pve/nodes/pve/`も空のまま残っている。どちらも2026-10-09の片付けで削除した。
 
 ### ゲストとHA
 
@@ -56,11 +56,11 @@ Phase 0時点の一覧。Phase 1でArgo CDの管理に移し、Helm releaseは�
 | 201〜203 | talos-cp-1〜3 | pve-1/2/3 | running | ceph-pool 32G | HA対象外 |
 | 500 | discordbots | pve-2 | running | ceph-pool 16G | LXC。開発環境としてHA対象外で残した（本番のpricetrackerはk8sへ移行済み） |
 | 801〜803 | llama-rpc-1〜3 | 各ノード | stopped | local-lvm 24G | LXC。2026-10-09に削除した |
-| 903 | netbox | pve-3 | running | ceph-pool 32G | LXC。NetBox v4.3.2。k8sへ移行済みで、停止して残している |
+| 903 | netbox | pve-3 | running | ceph-pool 32G | LXC。NetBox v4.3.2。k8sへ移行済み。2026-10-09の片付けで削除した（vzdumpは`pc-backups`に残してある） |
 
 - VM 105（ai）は2026-10-09に削除した（ユーザー指示。GPUは取り外し済みだった）。
 - HAリソースは`ct:500`、`ct:903`、`vm:106`の3つだった。手順書の前提（HAはゲームサーバだけ）に合わせ、2026-10-09に500と903をHAから外した。現在は`vm:106`だけ。HA ruleは、Phase 6で`mc-prefer-pve-1`（pve-1を優先、非strict）を作った。
-- CT903 netbox：k8sの`netbox` namespaceに移行した（`k8s/apps/netbox/`）。CTは停止し、`onboot 0`にしてロールバック用に残してある。
+- CT903 netbox：k8sの`netbox` namespaceに移行した（`k8s/apps/netbox/`）。CTはロールバック用に残していたが、2026-10-09の片付けで削除した。vzdumpは`pc-backups`に残してある。
 - CT500 discordbots：本番の`pricetracker`は、2026-10-09にk8sの`pricetracker` namespaceへ移した（`k8s/apps/pricetracker/`）。CTは開発環境としてHA対象外のまま動かす。
 
 ## 0-2. バックアップ
@@ -72,7 +72,7 @@ Phase 0時点の一覧。Phase 1でArgo CDの管理に移し、Helm releaseは�
 - [x] CNPGの論理ダンプ：`cnpg/grafana-db-pg_dumpall-2026-10-09.sql`（5.9MB）
 - [x] 各PVEホストの設定：`hosts/pve-{1,2,3}-etc.tgz`。`/etc/network`、`/etc/frr`、`/etc/sysctl.d`、`/etc/systemd/system`、udev、modprobe、`/usr/local/bin/*.sh`（`thunderbolt-irq-affinity.sh`を含む）。パッケージ一覧は`hosts/pve-*-packages.txt`
 - [x] `/etc/pve`全体：`etc-pve-2026-10-09.tgz`
-- [x] 全ゲストのvzdump：PVEストレージ`pc-backups`（CIFS、`//desktop-6vkqmqj.ayu-mamba.ts.net/Backup`、`prune-backups keep-all=1`）の`dump/`にそろえた。最初の7件は各ノードの`/var/lib/vz/dump/`に取ってから`pc-backups`へコピーした（ローカルの元ファイルは残してある）
+- [x] 全ゲストのvzdump：PVEストレージ`pc-backups`（CIFS、`//desktop-6vkqmqj.ayu-mamba.ts.net/Backup`、`prune-backups keep-all=1`）の`dump/`にそろえた。最初の7件は各ノードの`/var/lib/vz/dump/`に取ってから`pc-backups`へコピーした（ローカルの元ファイルは、2026-10-09の片付けで、`pc-backups`のものと同じサイズであることを確かめてから削除した）
 
 | ゲスト | アーカイブ |
 |---|---|

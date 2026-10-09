@@ -65,15 +65,3 @@ guests:
     numa: 0
     boot: order=scsi0;net0
     net0: virtio=BC:24:11:82:FE:34,bridge=vmbr0
-- vmid: 903
-  node: pve-3
-  type: lxc
-  config:
-    hostname: netbox
-    cores: 4
-    memory: 4096
-    swap: 1024
-    onboot: 0
-    features: nesting=1
-    net0: name=eth0,bridge=vmbr0,hwaddr=BC:24:11:E5:EE:28,ip=dhcp,type=veth
-    ostype: debian
