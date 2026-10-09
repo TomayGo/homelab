@@ -1,6 +1,6 @@
 # 全損時の復旧手順
 
-手順書9章の具体版。2026-10-09時点の構成をもとにしている。Phase 3〜4のapplyは完了している。Phase 2（R2へのバックアップ）は、定義はできているが、認証情報を入れる前なので有効になっていない（`docs/phase2-plan.md`）。
+手順書9章の具体版。2026-10-09時点の構成をもとにしている。Phase 3〜4のapplyは完了している。Phase 2（R2へのバックアップ）も、2026-10-09に有効にした（`docs/phase2.md`）。
 
 ## 必要なもの
 
@@ -21,7 +21,7 @@
 | 5 | Talosの設定を適用し、1台目で`talosctl bootstrap`を手で実行する | `tofu/talos/`（secretsは`secrets.enc.yaml`からも戻せる） |
 | 6 | Argo CDを手で入れ、ルートのApplicationを作る（下記） | `k8s/bootstrap/` |
 | 7 | Argo CDが全アプリを同期するのを待つ（自動syncが無効なら、手順書の順に手でsyncする） | `k8s/` |
-| 8 | CNPG（grafana-db、netbox-db）をS3から`bootstrap.recovery`で戻す | 外部S3（Phase 2の完了後） |
+| 8 | CNPG（grafana-db、netbox-db）をS3から`bootstrap.recovery`で戻す | R2のバケット`homelab-backup`（`cnpg/`）。手順は`docs/phase2-plan.md`の「リストア試験」と同じで、名前を元のClusterと同じにする |
 
 ### 6. Argo CDのbootstrap
 
