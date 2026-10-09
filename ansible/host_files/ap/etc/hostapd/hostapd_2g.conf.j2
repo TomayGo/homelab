@@ -1,0 +1,30 @@
+# インターフェース設定
+interface=wlp6s16
+bridge=br0
+driver=nl80211
+
+# Wi-Fi基本設定 (6GHz側とSSIDを完全に一致)
+ssid=My_6GHz_AP
+country_code=JP
+ieee80211d=1
+
+hw_mode=g
+channel=6
+ieee80211n=1
+ieee80211ax=1
+wmm_enabled=1
+
+# セキュリティ設定 (6GHz側と完全に同一にする)
+wpa=2
+wpa_key_mgmt=SAE
+rsn_pairwise=CCMP
+sae_password={{ ap_sae_password }}
+ieee80211w=2
+sae_groups=19
+sae_pwe=2
+
+# 6GHzへの案内(RNR)
+rnr=1
+
+ctrl_interface=/var/run/hostapd
+ctrl_interface_group=0

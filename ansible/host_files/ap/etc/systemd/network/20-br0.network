@@ -1,0 +1,6 @@
+[Match]
+Name=br0
+
+[Link]
+MTUBytes=9000
+

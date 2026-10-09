@@ -1,0 +1,16 @@
+[Unit]
+Description=Wi-Fi Metrics Exporter for Grafana
+After=network.target hostapd.service
+
+[Service]
+Type=simple
+# スクリプトのフルパスを指定（環境に合わせて確認してください）
+ExecStart=/usr/bin/socat TCP4-LISTEN:9152,fork,reuseaddr EXEC:/usr/local/bin/metrics.sh
+# エラー等で落ちても自動で再起動する
+Restart=always
+RestartSec=5
+# iwコマンド等を使うためroot権限で実行
+User=root
+
+[Install]
+WantedBy=multi-user.target

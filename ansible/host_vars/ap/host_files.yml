@@ -1,0 +1,23 @@
+# roles/host_files が配るファイル。中身は ansible/host_files/ap/<パス>（template: true は .j2）
+host_files:
+  - {path: /etc/hostapd/hostapd.conf, owner: root, group: root, mode: '0644', template: true, notify: Restart hostapd}
+  - {path: /etc/hostapd/hostapd_2g.conf, owner: root, group: root, mode: '0644', template: true, notify: Restart hostapd}
+  - {path: /etc/hostapd/hostapd_5g.conf, owner: root, group: root, mode: '0644', template: true, notify: Restart hostapd}
+  - {path: /etc/systemd/system/hostapd.service.d/override.conf, owner: root, group: root, mode: '0644', notify: Restart hostapd}
+  - {path: /etc/systemd/system/hostapd.service.d/restart-always.conf, owner: root, group: root, mode: '0644', notify: Restart hostapd}
+  - {path: /etc/netplan/50-cloud-init.yaml, owner: root, group: root, mode: '0600', notify: Netplan generate}
+  - {path: /etc/systemd/network/20-br0.network, owner: root, group: root, mode: '0644', notify: Reload networkd}
+  - {path: /etc/systemd/network/30-zerotier.network, owner: root, group: root, mode: '0644', notify: Reload networkd}
+  - {path: /etc/systemd/network/10-netplan-br0.netdev.d/no-mld-snooping.conf, owner: root, group: root, mode: '0644', notify: Reload networkd}
+  - {path: /etc/modprobe.d/88x2bu.conf, owner: root, group: root, mode: '0644'}
+  - {path: /etc/modprobe.d/rtw89.conf, owner: root, group: root, mode: '0644'}
+  - {path: /etc/modprobe.d/blacklist-rtw88.conf, owner: root, group: root, mode: '0644'}
+  - {path: /etc/modprobe.d/usb_storage.conf, owner: root, group: root, mode: '0644'}
+  - {path: /etc/sysctl.d/99-panic-reboot.conf, owner: root, group: root, mode: '0644', notify: Apply sysctl}
+  - {path: /etc/default/grub, owner: root, group: root, mode: '0644', notify: Update grub}
+  - {path: /etc/systemd/system/wifi-exporter.service, owner: root, group: root, mode: '0644', notify: Restart wifi-exporter}
+  - {path: /etc/systemd/system/wifi-watchdog.service, owner: root, group: root, mode: '0644', notify: Reload systemd}
+  - {path: /etc/systemd/system/wifi-watchdog.timer, owner: root, group: root, mode: '0644', notify: Reload systemd}
+  - {path: /etc/systemd/system/vpnserver.service, owner: root, group: root, mode: '0644', notify: Reload systemd}
+  - {path: /usr/local/bin/metrics.sh, owner: root, group: root, mode: '0755', notify: Restart wifi-exporter}
+  - {path: /usr/local/bin/wifi-watchdog.sh, owner: root, group: root, mode: '0755'}

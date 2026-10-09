@@ -1,0 +1,41 @@
+# ゲスト（ap、mc）の管理対象ファイルを collected/<host>/ に回収する（読み取りのみ。collected/ は gitignore 対象）
+- name: Collect managed files from guests
+  hosts: guests
+  gather_facts: false
+  vars:
+    collect_files:
+      ap:
+        - /etc/hostapd/hostapd.conf
+        - /etc/hostapd/hostapd_2g.conf
+        - /etc/hostapd/hostapd_5g.conf
+        - /etc/systemd/system/hostapd.service.d/override.conf
+        - /etc/systemd/system/hostapd.service.d/restart-always.conf
+        - /etc/netplan/50-cloud-init.yaml
+        - /etc/systemd/network/20-br0.network
+        - /etc/systemd/network/30-zerotier.network
+        - /etc/systemd/network/10-netplan-br0.netdev.d/no-mld-snooping.conf
+        - /etc/modprobe.d/88x2bu.conf
+        - /etc/modprobe.d/rtw89.conf
+        - /etc/modprobe.d/blacklist-rtw88.conf
+        - /etc/modprobe.d/usb_storage.conf
+        - /etc/sysctl.d/99-panic-reboot.conf
+        - /etc/default/grub
+        - /etc/systemd/system/wifi-exporter.service
+        - /etc/systemd/system/wifi-watchdog.service
+        - /etc/systemd/system/wifi-watchdog.timer
+        - /etc/systemd/system/vpnserver.service
+        - /usr/local/bin/metrics.sh
+        - /usr/local/bin/wifi-watchdog.sh
+      mc:
+        - /etc/systemd/system/minecraft.service
+        - /etc/netplan/50-cloud-init.yaml
+        - /etc/default/grub
+        - /home/tomaygo/mc-server/server.properties
+        - /home/tomaygo/mc-server/user_jvm_args.txt
+  tasks:
+    - name: Fetch files
+      ansible.builtin.fetch:
+        src: "{{ item }}"
+        dest: "{{ playbook_dir }}/../collected/"
+        fail_on_missing: false
+      loop: "{{ collect_files[inventory_hostname] }}"

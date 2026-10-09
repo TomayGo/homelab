@@ -1,0 +1,10 @@
+network:
+  version: 2
+  renderer: networkd
+  ethernets:
+    enp6s18:
+      dhcp4: false  # 有線単体でのDHCPはオフにする
+  bridges:
+    br0:            # 新設するブリッジ
+      interfaces: [enp6s18]  # 有線をブリッジに組み込む
+      dhcp4: true   # ブリッジ自体がDHCPでIPを取得する

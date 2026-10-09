@@ -1,0 +1,6 @@
+[Unit]
+Description=Detect and recover rtw89 6GHz firmware wedge
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/wifi-watchdog.sh

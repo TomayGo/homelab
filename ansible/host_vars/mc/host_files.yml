@@ -1,0 +1,6 @@
+# roles/host_files が配るファイル。中身は ansible/host_files/mc/<パス>（template: true は .j2）
+host_files:
+  - {path: /etc/systemd/system/minecraft.service, owner: root, group: root, mode: '0644', notify: Reload systemd}
+  - {path: /etc/netplan/50-cloud-init.yaml, owner: root, group: root, mode: '0600', notify: Netplan generate}
+  - {path: /etc/default/grub, owner: root, group: root, mode: '0644', notify: Update grub}
+  - {path: /home/tomaygo/mc-server/user_jvm_args.txt, owner: tomaygo, group: tomaygo, mode: '0644'}
