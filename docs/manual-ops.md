@@ -17,6 +17,24 @@
   - `data`：存在しないノード`pve`に限定されている
 - `/etc/pve/nodes/pve/`（存在しないノード`pve`）も空のまま残っている
 
+### vzdumpの定期ジョブ
+
+`/etc/pve/jobs.cfg`のジョブ`backup-every3d`（2026-10-09に作成）。全損したら、`pc-backups`を追加してから同じ内容で作り直す。
+
+```sh
+pvesh create /cluster/backup --id backup-every3d --schedule '*-*-1/3 10:00' \
+  --storage pc-backups --vmid 101,103,106,500 --mode snapshot --compress zstd \
+  --prune-backups keep-last=3 --notes-template '{{guestname}}' \
+  --comment 'ap/mc/dtv/discordbots, every 3 days, keep 3'
+```
+
+- 対象：101 dtv、103 ap、106 mc、500 discordbots。どれもRepoからは戻せない（ドライバのビルド、SoftEther VPNとZeroTierの状態、ワールドや録画のデータなど）
+- 対象外：Talos VM（201〜203）。OpenTofuとArgo CDで作り直せるうえ、PVCはVMのディスクではないのでvzdumpに入らない。CT903（旧NetBox）は片付けで消す予定
+- 日付が1、4、7、…、31日の10時に取る。31日のある月は、31日と翌月1日が続けて実行される
+- CIFSへのvzdumpは毎回フルバックアップになる（差分を取るにはPBSが要る）。1回約60GBで、3世代で約180GB
+- 保存先はWindowsのPCなので、10時にPCが起きていないと失敗する
+- `keep-last=3`は、手で取ったバックアップも数に入れて消す。2026-10-09に手で取った分も、3回目の実行後に消える
+
 ## Ceph（pveceph）
 
 - 構成の変更は、`pveceph`かPVEのGUIで行う。ceph.confやCRUSHマップを直接書き換えない

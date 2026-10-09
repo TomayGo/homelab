@@ -40,7 +40,7 @@ Phase 0時点の一覧。Phase 1でArgo CDの管理に移し、Helm releaseは�
 
 ### vzdumpと保存先
 
-- **vzdumpの定期ジョブは存在しない**（`/etc/pve/jobs.cfg`がない）。PBSもない。
+- **vzdumpの定期ジョブは存在しない**（`/etc/pve/jobs.cfg`がない）。PBSもない。2026-10-09に、`pc-backups`へ3日ごとのジョブを作った（`docs/manual-ops.md`）
 - バックアップ可能なストレージは各ノードの`local`（ルートLV上の`/var/lib/vz`、94GB）だけ。全損時には残らない。
 - `storage.cfg`に使えない定義が2つある。
   - `local-nvme`：`vg_nvme`が存在しない。このせいで`qm destroy --destroy-unreferenced-disks`が失敗する。

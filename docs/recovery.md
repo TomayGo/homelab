@@ -8,7 +8,7 @@
 - OpenTofuのstate暗号化パスフレーズ（パスワードマネージャ）→ `TF_VAR_state_passphrase`
 - GitHubの認証情報（`TomayGo/homelab`をcloneするため）
 - vzdump：PVEストレージ`pc-backups`（`//desktop-6vkqmqj.ayu-mamba.ts.net/Backup`）の`dump/`
-  - 定期ジョブはまだない。2026-10-09に全ゲスト分を手で取得した
+  - 定期ジョブ`backup-every3d`で、101、103、106、500を3日ごとに取っている（3世代。`docs/manual-ops.md`）。Talos VMは取っていない
 
 ## 手順
 

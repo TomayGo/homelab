@@ -114,7 +114,7 @@
 
 - apのhostapdの設定（パスフレーズを含む）は`644`で、誰でも読めた。2026-10-09に`600`へ絞り、`host_files.yml`も合わせた。権限だけを先に直接変えたので、handlerによるhostapdの再起動は起きていない
 - apに`.bak`ファイルが6つ残っている（`/etc/hostapd/*.bak`、`/etc/modprobe.d/*.bak-20260908-184702`、`/usr/local/bin/metrics.sh.bak*`）
-- mcのワールド（8.9GB）は、R2へのバックアップの対象外。vzdump（`pc-backups`、手動）とCephのレプリカだけで守られている
+- mcのワールド（8.9GB）は、R2へのバックアップの対象外。vzdump（`pc-backups`、3日ごと）とCephのレプリカだけで守られている
 
 ## Phase 6の完了条件
 
