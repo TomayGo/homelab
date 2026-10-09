@@ -38,8 +38,23 @@ kubectl apply -f k8s/bootstrap/root.yaml
 - syncしたら、Helmのrelease Secret（`owner=helm`）は作らない（`helm install`したargocdのものは消す）
 - ceph-csiは、`k8s/apps/ceph-csi/manifests/csi-rbd-secret.enc.yaml`のCephユーザー（`client.k8s`）が新しいCephに存在しないと動かない。手順2で同じ名前のユーザーを作り、鍵をSOPSのファイルに書き戻す
 
+## PVCのバックアップから戻す
+
+PVCのバックアップは、R2の`pvc/<namespace>/<名前>/<UTC時刻>.tar.zst`にある（2世代）。中身はPVCの中身そのままで、SQLiteは`.sqlite-backup/<元のパス>`に、`.backup`で取り直したものが入っている。
+
+```sh
+# 例：AGH primary。アプリを止め（replicas 0）、同じ PVC をマウントした一時 Pod の中で展開する
+rclone lsf r2:<bucket>/pvc/dns/agh-primary/
+rclone cat r2:<bucket>/pvc/dns/agh-primary/<時刻>.tar.zst | zstd -dc | tar xf - -C /src
+# SQLite がある場合は、取り直したものを元の場所に戻す（-wal / -shm は消す）
+mv /src/.sqlite-backup/webui.db /src/webui.db && rm -f /src/webui.db-wal /src/webui.db-shm
+```
+
+- `rclone`の設定は、Secret `r2-backup`と同じ環境変数（`RCLONE_CONFIG_R2_*`、`TYPE=s3`、`PROVIDER=Cloudflare`）で渡す
+- ツールは`ghcr.io/tomaygo/backup-tools`に全部入っている（`images/backup-tools/`）
+- Prometheusは、片方のレプリカのブロックだけをバックアップしている。両方のレプリカに展開すれば、Thanos Query経由で同じ履歴が見える
+
 ## 失われるもの（受け入れ済み）
 
-- Cephごと失った場合、CNPG以外のPVCは失われる。対象は、Prometheusの履歴、Grafanaの手動の変更分、AGHのクエリログと設定（`agh-seed-config`から初期化される）、Open WebUIの履歴、pricetrackerの登録内容、NetBoxのmedia
-- AGHの設定は`agh-seed-config`（SOPS）から初期化されるが、seedより後にGUIで変えた分は戻らない
-- Open WebUIとpricetrackerのデータはSQLiteで、CNPGのバックアップ対象ではない（必要ならPhase 2のあとで検討する）
+- PVCのバックアップは1日1回なので、最後のバックアップ以降の分は失われる
+- バックアップしていないもの：Prometheusのもう片方のレプリカ（同じデータ）、Open WebUIの埋め込みモデルのキャッシュ（再ダウンロードされる）、AGHのフィルタ（再ダウンロードされる）、Grafanaのダッシュボード（`grafana-db`に入っているので、CNPGのバックアップで戻る）

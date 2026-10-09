@@ -1,91 +1,90 @@
-# Phase 2 計画（下書き、ブランチ`phase2-prep`）
+# Phase 2：R2へのバックアップ（2026-10-09、認証情報の投入待ち）
 
-外部S3の契約先が決まったら、このファイルの`<…>`を埋めて`main`にマージする。
+## 方針（2026-10-09決定）
 
-## 前提の確認結果（未確認事項#8）
+- 保存先はCloudflare R2。無料枠（10GB）に収める
+- 対象は、CNPG（`grafana-db`、`netbox-db`）とアプリのPVC。手順書の「CNPGのみ」から広げた
+- 圧縮はzstd -19。圧縮率を実測して決めた（下記）
 
-- Barman Cloud Plugin v0.15.1（chart `cnpg/plugin-barman-cloud` 0.8.1）
-- CNPGは1.26以上が必要。現在は1.30.0なので満たしている
-- **cert-managerが必須**。プラグインとCNPG operatorの間のmTLS証明書を発行する。現在は未導入なので、`jetstack/cert-manager` v1.21.2を先に入れる
-- プラグインは、CNPG operatorと同じnamespace（`cnpg-system`）に入れる必要がある
-- 対象のClusterは2つある。`monitoring/grafana-db`と、2026-10-09に追加した`netbox/netbox-db`
+## 構成
 
-## 手順
+### CNPG（Barman Cloud Plugin）
 
-1. このブランチの`k8s/root/cert-manager.yaml`と`k8s/root/plugin-barman-cloud.yaml`を`main`に入れ、cert-manager → plugin-barman-cloudの順にsyncする
-2. S3のバケットと、そのバケット専用のアクセスキーを作る
-3. 認証情報をSOPSで暗号化する。ObjectStoreはnamespaceごとに必要なので、`monitoring`と`netbox`の両方に置く
-   - `k8s/apps/cloudnative-pg/manifests/s3-credentials.enc.yaml`（monitoring）
-   - `k8s/apps/netbox/manifests/s3-credentials.enc.yaml`（netbox）
-4. 下のObjectStore、`spec.plugins`、ScheduledBackupを各manifestsに追加し、syncする
-5. 最初のバックアップが成功し、WALが溜まることを確認する
-6. リストアを試験する（後述）
+- cert-manager v1.21.2（プラグインの前提）とplugin-barman-cloud 0.8.1（v0.15.1）は、Argo CDのApplicationとして導入済み。どちらもSynced/Healthy
+- ObjectStore `r2`をnamespaceごとに作る（monitoring、netbox）。`destinationPath: s3://<bucket>/cnpg/`。Clusterごとに`serverName`（Cluster名）で分かれる
+- 圧縮
+  - WALはzstd
+  - ベースバックアップはbzip2（プラグインのdata圧縮は、bzip2、gzip、lz4、snappyだけでzstdがない）
+- ベースバックアップは週1回（日曜4:00）。`retentionPolicy: 30d`（WALで30日分のPITR）
+- 定義は`k8s/apps/{cloudnative-pg,netbox}/backup-pending/backup-r2.yaml`。有効化スクリプトが値を埋めて`manifests/`に移す
 
-## マニフェスト
+### PVC（tar → zstd -19 → R2）
 
-```yaml
-# Secret（SOPS で暗号化する）
-apiVersion: v1
-kind: Secret
-metadata:
-  name: s3-credentials
-  namespace: monitoring          # netbox 側にも同じものを置く
-stringData:
-  ACCESS_KEY_ID: <…>
-  ACCESS_SECRET_KEY: <…>
----
-apiVersion: barmancloud.cnpg.io/v1
-kind: ObjectStore
-metadata:
-  name: s3-backup
-  namespace: monitoring          # netbox 側にも同じものを置く
-spec:
-  retentionPolicy: "30d"         # 保持期間（要決定）
-  configuration:
-    destinationPath: s3://<bucket>/cnpg/
-    endpointURL: <https://<account>.r2.cloudflarestorage.com など>
-    s3Credentials:
-      accessKeyId:
-        name: s3-credentials
-        key: ACCESS_KEY_ID
-      secretAccessKey:
-        name: s3-credentials
-        key: ACCESS_SECRET_KEY
-    wal:
-      compression: gzip
-    data:
-      compression: gzip
-```
+- ツールイメージは`ghcr.io/tomaygo/backup-tools`（`images/backup-tools/`。alpine 3.24.2 + zstd、GNU tar、sqlite3、rclone）。GitHub Actionsでビルドする
+- 各namespaceにCronJobを置いた。**今は`suspend: true`**
+- PVCはRWOなので、`podAffinity`で、PVCを使っているPodと同じノードで動かす
+- SQLiteは、`sqlite3 .backup`で取り直して`.sqlite-backup/`に入れる（動いているDBをそのままtarしない）
+- 2世代を残す（ファイル名はUTC時刻）
 
-Clusterに追加する設定（`grafana-db`、`netbox-db`の両方）：
+| CronJob | 時刻 | 対象 | 除外 | 実行ユーザー |
+|---|---|---|---|---|
+| dns/pvc-backup-agh-primary | 3:10 | conf、work | filters、lost+found | root |
+| dns/pvc-backup-agh-replica | 3:20 | conf、work | filters、lost+found | root |
+| monitoring/pvc-backup-prometheus | 3:30 | prometheus-0のブロック | wal、chunks_head | 1000:2000 |
+| ai/pvc-backup-openwebui | 3:50 | data（SQLite 2つは取り直す） | cache | root |
+| pricetracker/pvc-backup | 3:55 | data（SQLite） | - | 65532 |
+| netbox/pvc-backup-media | 3:58 | media | - | 1000 |
 
-```yaml
-spec:
-  plugins:
-    - name: barman-cloud.cloudnative-pg.io
-      isWALArchiver: true
-      parameters:
-        barmanObjectName: s3-backup
-```
+## 圧縮の比較（実測）
 
-```yaml
-apiVersion: postgresql.cnpg.io/v1
-kind: ScheduledBackup
-metadata:
-  name: grafana-db-daily         # netbox-db-daily も同様
-  namespace: monitoring
-spec:
-  schedule: "0 0 3 * * *"        # 秒 分 時 … の6フィールド。毎日3:00
-  backupOwnerReference: self
-  cluster:
-    name: grafana-db
-  method: plugin
-  pluginConfiguration:
-    name: barman-cloud.cloudnative-pg.io
-```
+| 方式 | AGHのクエリログ | Prometheusのブロック |
+|---|---|---|
+| gzip -6 | 7.4倍 | 1.8倍 |
+| zstd -3 | 9.7倍 | 2.2倍 |
+| **zstd -19** | **15.9倍** | **3.3〜3.6倍** |
+| xz -9 | 16.1倍 | 3.5倍 |
+| restic `--compression max` | 10.9倍 | 2.3倍 |
 
-- `serverName`はClusterの名前が既定値なので、2つのClusterで同じ`destinationPath`を共有しても混ざらない
-- Clusterに`spec.plugins`を足すと、`archive_command`が変わってPostgreSQLが再起動する（`primaryUpdateMethod: restart`）。夜間など、Grafanaが一瞬止まってもよい時間に行う
+- resticは差分を取れるが、圧縮が弱く、1世代目だけで約4.2GBになる。このため、zstd -19で丸ごと取って2世代残す方式にした
+
+## 試運転（DRY_RUN、R2には送らない）の結果
+
+2026-10-09に、CronJobの定義に`DRY_RUN=1`を足した一時的なJobで、6つすべてを実行した。全部、対象のPodと同じノードで起動し、ghcrからのイメージ取得とPVCのマウントも成功した。
+
+| バックアップ | 元のサイズ | 圧縮後 | 所要時間 |
+|---|---|---|---|
+| dns/agh-primary | 約2.95GB | 182MiB | 575秒 |
+| dns/agh-replica | 約2.95GB | 182MiB | 650秒 |
+| monitoring/prometheus | 約5.4GB | 1,498MiB | 404秒 |
+| ai/openwebui | 約38MB（cache除く） | 4MiB | 4秒 |
+| pricetracker/data | 20KB | 1MiB未満 | 1秒 |
+| netbox/media | ほぼ空 | 1MiB未満 | 0秒 |
+
+- 1世代あたり、現在は約1.9GB
+- 定常時は約2.8GBの見込み。AGHのクエリログは90日保持で1台約6GB、Prometheusは15日保持で約7.3GBになるため
+- 2世代で約5.6GB。CNPG（0.5GB以下）と合わせて約6GBで、無料枠（10GB）に約4GBの余裕がある
+- dns/agh-replica（3:20から約11分）とmonitoring/prometheus（3:30から）は同じノード（talos-cp-2）なので、少し重なる。CPUのlimitは各2コア
+
+## 有効にする手順（ユーザー）
+
+1. Cloudflare R2でバケットを作り、そのバケットだけに書き込めるAPIトークン（S3互換のAccess Key ID / Secret）を発行する
+2. pve-1で、次のスクリプトを実行する
+   - 入力はアカウントID、バケット名、Access Key ID、Secret（Secretは画面に表示されない）
+   - 5つのnamespaceのSecret `r2-backup`（SOPS）、ObjectStoreとScheduledBackup、Clusterへのプラグインの追加、CronJobの停止解除をまとめて書き換える
+
+   ```sh
+   cd /root/homelab && scripts/enable-r2-backup.sh
+   ```
+
+3. `git diff`を確認してコミット・pushし、Argo CDで次の順にsyncする
+   1. adguard-home、kube-prometheus-stack、openwebui、pricetracker、netbox（Secretと、CronJobの停止解除）
+   2. cloudnative-pg、netbox（ObjectStore、ScheduledBackup、Clusterのプラグイン）
+   - **Clusterにプラグインを足すと、PostgreSQLが再起動する**。Grafana、NetBoxが一瞬止まる
+4. 確認する
+   - `kubectl -n monitoring get cluster grafana-db -o jsonpath='{.status.conditions}'`で、ContinuousArchivingがTrueになること
+   - `kubectl create job --from=cronjob/<名前> -n <ns> <job名>`でPVCのバックアップを1回走らせ、R2にファイルができること
+   - 最初のベースバックアップは、`kubectl cnpg backup`か、ScheduledBackupに`immediate: true`を足して取る
+5. リストア試験（手順書2-3）：別名のClusterを`bootstrap.recovery`で作る（下記）
 
 ## リストア試験
 
@@ -109,8 +108,8 @@ spec:
       plugin:
         name: barman-cloud.cloudnative-pg.io
         parameters:
-          barmanObjectName: s3-backup
+          barmanObjectName: r2
           serverName: grafana-db
 ```
 
-このClusterは、Argo CDの管理外として`kubectl apply`で作る。Grafanaのテーブルの件数が元と一致することを確認したら削除する。
+このClusterはArgo CDの管理外として`kubectl apply`で作り、Grafanaのテーブルの件数が元と一致することを確認したら削除する。PVCのバックアップも、1つは一時Podで展開して中身を確かめる（`docs/recovery.md`）。
