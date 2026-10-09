@@ -20,7 +20,7 @@ spec:
         seccompProfile: {type: RuntimeDefault}
       containers:
         - name: proxy
-          image: python:3.13-alpine3.22
+          image: python:3.14-alpine3.22
           command: ["python3", "-u", "/app/proxy.py"]
           env:
             - {name: UPSTREAM, value: "http://lmstudio.ai.svc.cluster.local:1234"}
