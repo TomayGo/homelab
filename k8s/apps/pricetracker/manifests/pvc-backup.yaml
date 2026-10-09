@@ -1,5 +1,5 @@
 # PVC を tar → zstd -19 → Cloudflare R2 に送る（images/backup-tools/pvc-backup.sh）。2世代残す
-# R2 の認証情報（Secret r2-backup）ができるまで suspend: true のまま止めておく（docs/phase2-plan.md）
+# R2 の認証情報は Secret r2-backup（SOPS）。2026-10-09 に有効化した（docs/phase2.md）
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -8,7 +8,7 @@ metadata:
 spec:
   schedule: 55 3 * * *
   timeZone: Asia/Tokyo
-  suspend: true
+  suspend: false
   concurrencyPolicy: Forbid
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 2

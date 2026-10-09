@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: r2-backup
+    namespace: pricetracker
+type: Opaque
+stringData:
+    R2_BUCKET: ENC[AES256_GCM,data:8uGVkzEgIrg/ShKN4IM=,iv:7kR9wHlIkTJqNkMieDyKJbhhCwkjjc/5N/sAq6dayMs=,tag:EBBiSWu2MQfSDNI6jK0SHA==,type:str]
+    RCLONE_CONFIG_R2_ENDPOINT: ENC[AES256_GCM,data:QUUd/I6UBjA1wIHLUbyG2jXv4ghdEPXv23X1wLnDgjN9n5yOFUQAciIXkZbaSxysmR8pLdyvzgKKGRB5DT5KMNw=,iv:KmPzZxIqrZ1RS5vtgp9cO0I5erFECB8laPG8mFFAr+M=,tag:2quxqhnbq+t/+XF1JeLcNQ==,type:str]
+    RCLONE_CONFIG_R2_ACCESS_KEY_ID: ENC[AES256_GCM,data:mujyCeVGgJgK4OCE6YXGY+PVNgJZhkU6JOFmgQ4y4+E=,iv:zrkG8VlUsvtRRCT5r+4Zx3C5np2WuyJcoQ/6ZKKi/7k=,tag:aIWAfM8XRSppBsrCtFvnLw==,type:str]
+    RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ENC[AES256_GCM,data:6j06W0BUihRKw7wLiLdVuSeDiC74aoKl3gg4p9Cp8Zi0WlNbyeJ3Ytcwin52zNx/88jzQVkz+kISDRfuL8YjwQ==,iv:VPPUvUOX+JrjpPBRtF73q6fCg+TOlHCibBUq5XwVGDM=,tag:02aK9AXisIX8P1PNigcOSw==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBpRElEZ25WQmdUMkpINFpo
+            bUo2NlVhMytyUW42WGtRUDkwdzZUbzFNaUYwCmNscmJiaWIwb1Vub2FleU03ZXNK
+            aCtzUVhqZkJlREU1SkJ1aStSME9XdDgKLS0tIG5MWEY3UUNNUDJ1bEZWSUJWZVFw
+            cHB6dVFkcnU4WjZjdElxSVFVcjA2cm8KBk8tmebyzGJG/ERtTozi5byjXpaO1JVn
+            RflD2LGeodqxMPARCJQCgKIu7qXmVAXbbp8E8u6nk9UKWACAzsfFYQ==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-09T11:41:27Z"
+    mac: ENC[AES256_GCM,data:eWoV/QvCa3d1fQ2a3ZavMcK4uEy50P8sd5KUkdNF3I8HMz26Ifq3LhLmfcN97UDgIMQ7mPBiAkIODlQrsGjgPtyPu0j1iuPMvPaQrRBoTg2Xn/MMavOtyFK4UR/4HM9Mr9Savv6zBM09cJto0nnr/42PSZ3Pwup4o6hC2tc/uNw=,iv:4hwZ5MwSyJIgx/sz0O8SK8o8m+J30hT6HzkJmIlHuW8=,tag:8lZIO62rTnLLXUlJwD5Mfg==,type:str]
+    version: 3.13.3

@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: r2-backup
+    namespace: netbox
+type: Opaque
+stringData:
+    R2_BUCKET: ENC[AES256_GCM,data:RB2gfuBgBESHfc62WTs=,iv:3BPL9JPO7SHoYUkL2TkXLcuPoSQpT9t/aJVlJxOiYIo=,tag:rRwhE+hQCRIymgXPOcaORA==,type:str]
+    RCLONE_CONFIG_R2_ENDPOINT: ENC[AES256_GCM,data:qvSR7uRUysDfZRJhMg07iKHkQzBVI0QkABggp6D+NBh7sL5hpz0TZHOi5ItXuD9joL4xNx3pOpdqMLHTVNn8bcU=,iv:XxzNyTWqAJF27y5DpZ32OyXsy5pgO0553yPP/vprBzU=,tag:hfeKaR/Xtwd0TTJWck83WQ==,type:str]
+    RCLONE_CONFIG_R2_ACCESS_KEY_ID: ENC[AES256_GCM,data:cRkbi+Pk2qFafAAcFGu3qReoOzWY6l/fkdK8kVpSRD8=,iv:PNoBpik09hjc9UbgtiGWLxceevhRlEEiSrf4KJL/CFM=,tag:A2rHpVpVav9JguFlPv5Xng==,type:str]
+    RCLONE_CONFIG_R2_SECRET_ACCESS_KEY: ENC[AES256_GCM,data:ZdoHlkEatmOVla/91woxCXR9LlJ/n9GcMHy0gdm672h3cuBV9HWlMJSgxTXVrSe3E3F0/3WOd/U8d/GmmtqyXQ==,iv:1UpMaxZpWAVe2GxjiLbfdpS1UbEzWWdUvQ8wIZmmNtA=,tag:XbSBXb1K1aITV/qRnC+L8w==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSArVWVWZ1UzM0haK052Mks0
+            dU9RUGxEZlM4ZTNLaWkwd1dyZ1BWSUZwcldVCjZVL2pveTE3b1E0TDVhaFlyRFRF
+            N0lYK1I3QU9lMWNoWk5ZUjFmTFc3WTgKLS0tIEpMeGtGS2ZmaEFFZFRoMEorMEVW
+            aisySVFyRDNKdnRROEJqa3lmNW53S0EKMMFjUBcofESXplOtUKcxxXWqsPkYuwSy
+            sY9gkn3RXMLvem3hyUrEbP2iU/DOi8iZ2efkz4pWqiz6ubaxEEj34A==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-09T11:41:27Z"
+    mac: ENC[AES256_GCM,data:oBCtWLLGCmlhQGhYnhXZQjZqmrYUU2HaUree+Flnm2ktYUlZ0GE0H6FhJth0rr6jdOBkyG+kGITBkVx2IQ6MIuqdoFOC29y24SlJfSmquBLRsUOOXN9tYT48xmpyzrBWMGEsnFLOYitsmgUTd67OMbinpGQeDkOlk2xBpSLS6f4=,iv:Gv9fFlHvm+QlzKvq98VzdVHZseaOMAb5RWi+4WDekGA=,tag:QhuSuGKUKXmA+bgkVuH3cg==,type:str]
+    version: 3.13.3
