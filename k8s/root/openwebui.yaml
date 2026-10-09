@@ -19,14 +19,12 @@ spec:
     - ServerSideApply=true
     - RespectIgnoreDifferences=true
   ignoreDifferences:
-  - group: ''
-    kind: Service
+  - kind: Service
     name: lmstudio
     namespace: ai
     jsonPointers:
     - /spec/externalName
-  - group: ''
-    kind: Service
+  - kind: Service
     name: strata
     namespace: ai
     jsonPointers:
