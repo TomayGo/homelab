@@ -40,7 +40,7 @@ Renovate 44.147.0を`--platform=local --dry-run=extract`で実行し、次のと
 
 ### 最初の更新の反映
 
-#12（kube-prometheus-stack v92）以外の10件をマージし、アプリごとに順番にsyncした。
+#12（kube-prometheus-stack v92。のちに#13として作り直し）以外の10件をマージし、アプリごとに順番にsyncした。
 
 | 順 | 対象 | 結果 |
 |---|---|---|
@@ -58,4 +58,4 @@ Renovate 44.147.0を`--platform=local --dry-run=extract`で実行し、次のと
 
 - [x] GitHubでRenovateアプリをインストールし、`TomayGo/homelab`を対象にする
 - [x] Dependency Dashboardを確認する
-- [ ] #12（kube-prometheus-stack v92）は、87.21.0の様子を見てから進める。87→92の移行の注意点は確認済みで、今のvaluesは影響を受けない
+- [ ] #13（kube-prometheus-stack v92。履歴の書き換えで#12が閉じたため、Renovateが作り直した）は、87.21.0の様子を見てから進める。87→92の移行の注意点は確認済みで、今のvaluesは影響を受けない
