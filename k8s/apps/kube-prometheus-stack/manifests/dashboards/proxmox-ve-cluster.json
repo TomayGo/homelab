@@ -1367,7 +1367,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "(max by(node)(kube_node_status_condition{condition=\"Ready\",status=\"true\"})) * on(node) group_left(pve_host) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
+          "expr": "(max by(node)(kube_node_status_condition{condition=\"Ready\",status=\"true\"})) and on(node) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
           "legendFormat": "",
           "refId": "D",
           "instant": true,
@@ -1379,7 +1379,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "(sum by(node)((kube_pod_status_phase{phase=\"Running\"} == 1) * on(namespace, pod) group_left(node) kube_pod_info)) * on(node) group_left(pve_host) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
+          "expr": "(sum by(node)((kube_pod_status_phase{phase=\"Running\"} == 1) * on(namespace, pod) group_left(node) topk by(namespace, pod)(1, max by(namespace, pod, node)(kube_pod_info)))) and on(node) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
           "legendFormat": "",
           "refId": "E",
           "instant": true,
@@ -1391,7 +1391,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "max by(node, pve_host)(label_replace((1 - avg by(instance)(rate(node_cpu_seconds_total{job=\"node-exporter\",mode=\"idle\"}[5m]))) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\"},\"node\",\"$1\",\"nodename\",\"(.*)\") * on(node) group_left(pve_host) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\"))",
+          "expr": "max by(node)(label_replace((1 - avg by(instance)(rate(node_cpu_seconds_total{job=\"node-exporter\",mode=\"idle\"}[5m]))) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\"},\"node\",\"$1\",\"nodename\",\"(.*)\")) and on(node) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
           "legendFormat": "",
           "refId": "F",
           "instant": true,
@@ -1403,7 +1403,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "max by(node, pve_host)(label_replace((1 - node_memory_MemAvailable_bytes{job=\"node-exporter\"} / node_memory_MemTotal_bytes{job=\"node-exporter\"}) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\"},\"node\",\"$1\",\"nodename\",\"(.*)\") * on(node) group_left(pve_host) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\"))",
+          "expr": "max by(node)(label_replace((1 - node_memory_MemAvailable_bytes{job=\"node-exporter\"} / node_memory_MemTotal_bytes{job=\"node-exporter\"}) * on(instance) group_left(nodename) node_uname_info{job=\"node-exporter\"},\"node\",\"$1\",\"nodename\",\"(.*)\")) and on(node) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
           "legendFormat": "",
           "refId": "G",
           "instant": true,
@@ -1415,7 +1415,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "(sum by(node)(cluster:namespace:pod_memory:active:kube_pod_container_resource_requests) / sum by(node)(kube_node_status_allocatable{resource=\"memory\"})) * on(node) group_left(pve_host) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
+          "expr": "(sum by(node)(cluster:namespace:pod_memory:active:kube_pod_container_resource_requests) / sum by(node)(kube_node_status_allocatable{resource=\"memory\"})) and on(node) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
           "legendFormat": "",
           "refId": "H",
           "instant": true,
@@ -1427,7 +1427,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "(sum by(node)(cluster:namespace:pod_cpu:active:kube_pod_container_resource_requests) / sum by(node)(kube_node_status_allocatable{resource=\"cpu\"})) * on(node) group_left(pve_host) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
+          "expr": "(sum by(node)(cluster:namespace:pod_cpu:active:kube_pod_container_resource_requests) / sum by(node)(kube_node_status_allocatable{resource=\"cpu\"})) and on(node) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
           "legendFormat": "",
           "refId": "I",
           "instant": true,
@@ -1439,7 +1439,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "(max by(node, kubelet_version, os_image)(kube_node_info)) * on(node) group_left(pve_host) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
+          "expr": "(max by(node, kubelet_version, os_image)(kube_node_info)) and on(node) label_replace(label_replace(pve_guest_info{name=~\"talos-.*\",node=~\"$host\"},\"pve_host\",\"$1\",\"node\",\"(.*)\"),\"node\",\"$1\",\"name\",\"(.*)\")",
           "legendFormat": "",
           "refId": "J",
           "instant": true,
