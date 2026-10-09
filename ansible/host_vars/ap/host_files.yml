@@ -1,8 +1,8 @@
 # roles/host_files が配るファイル。中身は ansible/host_files/ap/<パス>（template: true は .j2）
 host_files:
-  - {path: /etc/hostapd/hostapd.conf, owner: root, group: root, mode: '0644', template: true, notify: Restart hostapd}
-  - {path: /etc/hostapd/hostapd_2g.conf, owner: root, group: root, mode: '0644', template: true, notify: Restart hostapd}
-  - {path: /etc/hostapd/hostapd_5g.conf, owner: root, group: root, mode: '0644', template: true, notify: Restart hostapd}
+  - {path: /etc/hostapd/hostapd.conf, owner: root, group: root, mode: '0600', template: true, notify: Restart hostapd}
+  - {path: /etc/hostapd/hostapd_2g.conf, owner: root, group: root, mode: '0600', template: true, notify: Restart hostapd}
+  - {path: /etc/hostapd/hostapd_5g.conf, owner: root, group: root, mode: '0600', template: true, notify: Restart hostapd}
   - {path: /etc/systemd/system/hostapd.service.d/override.conf, owner: root, group: root, mode: '0644', notify: Restart hostapd}
   - {path: /etc/systemd/system/hostapd.service.d/restart-always.conf, owner: root, group: root, mode: '0644', notify: Restart hostapd}
   - {path: /etc/netplan/50-cloud-init.yaml, owner: root, group: root, mode: '0600', notify: Netplan generate}

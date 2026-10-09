@@ -11,7 +11,8 @@
     dest: /etc/prometheus/pve.yml
     owner: root
     group: root
-    mode: "0644"
+    # トークンを含むので root だけが読めるようにする（exporter は root で動く）
+    mode: "0600"
   no_log: true
   notify: Restart prometheus-pve-exporter
 
