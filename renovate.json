@@ -116,6 +116,20 @@
         "kubernetes-api"
       ],
       "enabled": false
+    },
+    {
+      "description": "ceph-csi-operator は install.yaml（CRD を含む）ごと同じバージョンに入れ替える必要がある。イメージのタグだけ上げると CRD と食い違うので、Renovate では扱わない（docs/manual-ops.md）",
+      "matchPackageNames": [
+        "quay.io/cephcsi/ceph-csi-operator"
+      ],
+      "enabled": false
+    },
+    {
+      "description": "メジャーアップデートは Dependency Dashboard で承認してから PR を作る",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
     }
   ]
 }
