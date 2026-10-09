@@ -21,7 +21,7 @@
 | 5 | Talosの設定を適用し、1台目で`talosctl bootstrap`を手で実行する | `tofu/talos/`（secretsは`secrets.enc.yaml`からも戻せる） |
 | 6 | Argo CDを手で入れ、ルートのApplicationを作る（下記） | `k8s/bootstrap/` |
 | 7 | Argo CDが全アプリを同期するのを待つ（自動syncが無効なら、手順書の順に手でsyncする） | `k8s/` |
-| 8 | CNPG（grafana-db、netbox-db）をS3から`bootstrap.recovery`で戻す | R2のバケット`homelab-backup`（`cnpg/`）。手順は`docs/phase2-plan.md`の「リストア試験」と同じで、名前を元のClusterと同じにする |
+| 8 | CNPG（grafana-db、netbox-db）をS3から`bootstrap.recovery`で戻す | R2のバケット`homelab-backup`（`cnpg/`）。手順は`docs/phase2-plan.md`の「リストア試験」と同じ。戻したClusterでアーカイブを再開するときは、`plugins`の`parameters`に別の`serverName`（例：`grafana-db-r1`）を指定する。同じ場所には書き込めないため |
 
 ### 6. Argo CDのbootstrap
 
