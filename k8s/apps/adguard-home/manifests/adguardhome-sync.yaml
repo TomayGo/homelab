@@ -27,7 +27,7 @@ spec:
         - run
         - --config
         - /config/config.yaml
-        image: ghcr.io/bakito/adguardhome-sync:latest
+        image: ghcr.io/bakito/adguardhome-sync:v0.9.3
         imagePullPolicy: Always
         name: adguardhome-sync
         resources: {}

@@ -24,7 +24,7 @@ spec:
       - envFrom:
         - secretRef:
             name: adguard-exporter-config
-        image: ghcr.io/henrywhitaker3/adguard-exporter:latest
+        image: ghcr.io/henrywhitaker3/adguard-exporter:v1.2.1
         imagePullPolicy: Always
         name: adguard-exporter
         ports:
