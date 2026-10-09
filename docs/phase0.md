@@ -76,10 +76,10 @@
 |---|---|
 | 103 ap | 9.8GB |
 | 106 mc | 13.4GB |
-| 801 llama-rpc-1 | 21.4GB |
+| ~~801 llama-rpc-1~~（2026-10-09にLXCごと削除、vzdumpも削除） | 21.4GB |
 | 500 discordbots | 1.9GB |
-| 802 llama-rpc-2 | 21.1GB |
-| 803 llama-rpc-3 | 14.5GB |
+| ~~802 llama-rpc-2~~（2026-10-09にLXCごと削除、vzdumpも削除） | 21.1GB |
+| ~~803 llama-rpc-3~~（2026-10-09にLXCごと削除、vzdumpも削除） | 14.5GB |
 | 903 netbox | 0.9GB |
 | 101 dtv | 34.4GB（`pc-backups`に直接） |
 | 201/202/203 Talos | 11.1GB / 11.7GB / 9.2GB（`pc-backups`に直接） |
