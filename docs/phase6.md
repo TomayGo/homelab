@@ -43,7 +43,7 @@
 
 ### 気づいたこと
 
-- **LXC 801（llama-rpc-1、停止中）は固定IPが`192.168.1.90/24`**。MetalLBのプール（.90〜.99、Grafanaが.90を使っている）と重なっているので、起動するとIPが衝突する。`nameserver 192.168.1.31`も古い可能性がある
+- LXC 801〜803（llama-rpc、停止中）は2026-10-09にユーザーの指示で削除した。801の固定IP（192.168.1.90）がMetalLBのプールと重なっていた問題も、これでなくなった。削除前のvzdumpは`pc-backups`にある
 - VM 101 dtvに、未使用のディスク（`unused0: vm-101-disk-0`、`unused1: vm-101-disk-2`、各4MB）が残っている
 
 ## 6-4 ゲストの内部（未着手：接続方法が決まっていない）
@@ -55,7 +55,41 @@
 | 500 discordbots | `pct exec 500`（開発用LXC、HA対象外） | 開発環境。本番のpricetrackerはk8sに移した |
 
 - Tailscale SSHは、ACLが`check`モードで、ブラウザでの承認がないと入れない。pve-1から非対話で試すと、承認待ちのまま止まる
-- 進め方の候補
-  1. 作業のたびにTailscale SSHのcheckを承認する（承認は一定時間有効）
-  2. tailnetのACLで、pve-1（またはタグ）から2台へのSSHを`accept`にする
-  3. 2台でsshdをLANに開け、pve-1の鍵だけを許可する
+- 進め方：**tailnetのACLで、apとmcへのroot SSHを`accept`（承認不要）にする**（2026-10-09決定）
+
+### Tailscaleの管理画面での作業（ユーザー）
+
+1. Access controls（ポリシーファイル）に次を追加する。`tagOwners`と`ssh`がすでにある場合は、その中に足す。既存の`check`のルールは残す
+
+   ```jsonc
+   "tagOwners": {
+     "tag:iac-guest": ["autogroup:admin"],
+   },
+   "ssh": [
+     // IaC（Ansible）用：自分の端末（pve-1 を含む）から ap と mc へ、root で承認なしに入れる
+     {
+       "action": "accept",
+       "src":    ["autogroup:member"],
+       "dst":    ["tag:iac-guest"],
+       "users":  ["root"],
+     },
+     // root 以外は従来どおり承認あり
+     {
+       "action": "check",
+       "src":    ["autogroup:member"],
+       "dst":    ["tag:iac-guest"],
+       "users":  ["autogroup:nonroot"],
+     },
+   ],
+   ```
+
+   - ACLに`acls`/`grants`の制限がある場合は、`autogroup:member`から`tag:iac-guest`への`tcp:22`も許可する（既定の「全許可」なら不要）
+2. Machinesで`ap`と`mc`を開き、「Edit ACL tags」から`tag:iac-guest`を付ける
+   - タグを付けると、所有者がユーザーからタグに変わり、**鍵の有効期限も無効になる**。apは2026-09-09に鍵の期限切れで止まったことがあるので、その対策にもなる
+   - `autogroup:self`を対象にした既存のSSHルールは、タグ付きの端末には効かなくなる。上の2つのルールで代わりに入れるようにしている
+
+### 決めたこと
+
+- 厳密に「pve-1からだけ」にするには、pve-1にもタグを付けて`src`にする必要がある
+- ただ、pve-1にタグを付けると、所有者が変わり、ユーザーからpve-1へのTailscale SSHのルールが効かなくなるおそれがある。pve-1はこの作業の拠点なので避けた
+- その代わり、`accept`の対象をapとmcのrootだけに絞った

@@ -2,19 +2,6 @@
 # 管理しない項目：ディスク（scsi*, rootfs, efidisk*, unused*）、パススルー（hostpci*, usb*, dev*）、smbios1, vmgenid, meta
 # Talos VM（201〜203）は tofu/proxmox で管理する
 guests:
-- vmid: 801
-  node: pve-1
-  type: lxc
-  config:
-    hostname: llama-rpc-1
-    cores: 4
-    memory: 14336
-    swap: 0
-    onboot: 0
-    nameserver: 192.168.1.31
-    net0: name=eth0,bridge=vmbr0,gw=192.168.1.1,hwaddr=BC:24:11:F5:A3:DE,ip=192.168.1.90/24,type=veth
-    net1: name=eth1,bridge=vmbr9,hwaddr=BC:24:11:E1:B7:4F,ip=10.10.1.2/28,type=veth
-    ostype: debian
 - vmid: 103
   node: pve-1
   type: qemu
@@ -59,19 +46,6 @@ guests:
     features: nesting=1
     net0: name=net0,bridge=vmbr0,hwaddr=BC:24:11:A6:4C:1E,ip=dhcp,type=veth
     ostype: ubuntu
-- vmid: 802
-  node: pve-2
-  type: lxc
-  config:
-    hostname: llama-rpc-2
-    cores: 4
-    memory: 14336
-    swap: 0
-    onboot: 0
-    nameserver: 192.168.1.31
-    net0: name=eth0,bridge=vmbr0,gw=192.168.1.1,hwaddr=BC:24:11:79:C8:E6,ip=192.168.1.91/24,type=veth
-    net1: name=eth1,bridge=vmbr9,hwaddr=BC:24:11:FB:84:DD,ip=10.10.2.2/28,type=veth
-    ostype: debian
 - vmid: 101
   node: pve-2
   type: qemu
@@ -91,18 +65,6 @@ guests:
     numa: 0
     boot: order=scsi0;net0
     net0: virtio=BC:24:11:82:FE:34,bridge=vmbr0
-- vmid: 803
-  node: pve-3
-  type: lxc
-  config:
-    hostname: llama-rpc-3
-    cores: 4
-    memory: 11776
-    swap: 0
-    onboot: 0
-    nameserver: 192.168.1.31
-    net0: name=eth0,bridge=vmbr0,gw=192.168.1.1,hwaddr=BC:24:11:4D:95:45,ip=192.168.1.92/24,type=veth
-    ostype: debian
 - vmid: 903
   node: pve-3
   type: lxc
