@@ -1,0 +1,81 @@
+# PVC を tar → zstd -19 → Cloudflare R2 に送る（images/backup-tools/pvc-backup.sh）。2世代残す
+# R2 の認証情報（Secret r2-backup）ができるまで suspend: true のまま止めておく（docs/phase2-plan.md）
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-media
+  namespace: netbox
+spec:
+  schedule: 58 3 * * *
+  timeZone: Asia/Tokyo
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 7200
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+          - name: ghcr-pull
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app.kubernetes.io/instance: netbox
+                    app.kubernetes.io/component: netbox
+          securityContext:
+            runAsUser: 1000
+            runAsGroup: 1000
+            seccompProfile:
+              type: RuntimeDefault
+            runAsNonRoot: true
+          containers:
+          - name: backup
+            image: ghcr.io/tomaygo/backup-tools:sha-66c0fe7
+            env:
+            - name: BACKUP_NAME
+              value: netbox/media
+            - name: EXCLUDES
+              value: lost+found
+            - name: RCLONE_CONFIG_R2_TYPE
+              value: s3
+            - name: RCLONE_CONFIG_R2_PROVIDER
+              value: Cloudflare
+            - name: HOME
+              value: /tmp
+            envFrom:
+            - secretRef:
+                name: r2-backup
+                optional: true
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: '2'
+                memory: 1Gi
+            securityContext:
+              allowPrivilegeEscalation: false
+              capabilities:
+                drop:
+                - ALL
+            volumeMounts:
+            - name: media
+              mountPath: /src
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: media
+            persistentVolumeClaim:
+              claimName: netbox-media
+              readOnly: true
+          - name: tmp
+            emptyDir: {}

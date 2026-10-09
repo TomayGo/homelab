@@ -1,0 +1,165 @@
+# PVC を tar → zstd -19 → Cloudflare R2 に送る（images/backup-tools/pvc-backup.sh）。2世代残す
+# R2 の認証情報（Secret r2-backup）ができるまで suspend: true のまま止めておく（docs/phase2-plan.md）
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-agh-primary
+  namespace: dns
+spec:
+  schedule: 10 3 * * *
+  timeZone: Asia/Tokyo
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 7200
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+          - name: ghcr-pull
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    statefulset.kubernetes.io/pod-name: agh-primary-0
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: backup
+            image: ghcr.io/tomaygo/backup-tools:sha-66c0fe7
+            env:
+            - name: BACKUP_NAME
+              value: dns/agh-primary
+            - name: EXCLUDES
+              value: conf/lost+found work/lost+found work/data/filters
+            - name: RCLONE_CONFIG_R2_TYPE
+              value: s3
+            - name: RCLONE_CONFIG_R2_PROVIDER
+              value: Cloudflare
+            - name: HOME
+              value: /tmp
+            envFrom:
+            - secretRef:
+                name: r2-backup
+                optional: true
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: '2'
+                memory: 1Gi
+            securityContext:
+              allowPrivilegeEscalation: false
+            volumeMounts:
+            - name: conf
+              mountPath: /src/conf
+              readOnly: true
+            - name: work
+              mountPath: /src/work
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: conf
+            persistentVolumeClaim:
+              claimName: conf-agh-primary-0
+              readOnly: true
+          - name: work
+            persistentVolumeClaim:
+              claimName: work-agh-primary-0
+              readOnly: true
+          - name: tmp
+            emptyDir: {}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-agh-replica
+  namespace: dns
+spec:
+  schedule: 20 3 * * *
+  timeZone: Asia/Tokyo
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 7200
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+          - name: ghcr-pull
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    statefulset.kubernetes.io/pod-name: agh-replica-0
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: backup
+            image: ghcr.io/tomaygo/backup-tools:sha-66c0fe7
+            env:
+            - name: BACKUP_NAME
+              value: dns/agh-replica
+            - name: EXCLUDES
+              value: conf/lost+found work/lost+found work/data/filters
+            - name: RCLONE_CONFIG_R2_TYPE
+              value: s3
+            - name: RCLONE_CONFIG_R2_PROVIDER
+              value: Cloudflare
+            - name: HOME
+              value: /tmp
+            envFrom:
+            - secretRef:
+                name: r2-backup
+                optional: true
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: '2'
+                memory: 1Gi
+            securityContext:
+              allowPrivilegeEscalation: false
+            volumeMounts:
+            - name: conf
+              mountPath: /src/conf
+              readOnly: true
+            - name: work
+              mountPath: /src/work
+              readOnly: true
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: conf
+            persistentVolumeClaim:
+              claimName: conf-agh-replica-0
+              readOnly: true
+          - name: work
+            persistentVolumeClaim:
+              claimName: work-agh-replica-0
+              readOnly: true
+          - name: tmp
+            emptyDir: {}

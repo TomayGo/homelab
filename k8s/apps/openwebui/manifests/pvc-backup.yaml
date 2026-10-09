@@ -1,0 +1,78 @@
+# PVC を tar → zstd -19 → Cloudflare R2 に送る（images/backup-tools/pvc-backup.sh）。2世代残す
+# R2 の認証情報（Secret r2-backup）ができるまで suspend: true のまま止めておく（docs/phase2-plan.md）
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-openwebui
+  namespace: ai
+spec:
+  schedule: 50 3 * * *
+  timeZone: Asia/Tokyo
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 7200
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          imagePullSecrets:
+          - name: ghcr-pull
+          affinity:
+            podAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+              - topologyKey: kubernetes.io/hostname
+                labelSelector:
+                  matchLabels:
+                    app: openwebui
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: backup
+            image: ghcr.io/tomaygo/backup-tools:sha-66c0fe7
+            env:
+            - name: BACKUP_NAME
+              value: ai/openwebui
+            - name: EXCLUDES
+              value: cache lost+found
+            - name: SQLITE_DBS
+              value: webui.db vector_db/chroma.sqlite3
+            - name: RCLONE_CONFIG_R2_TYPE
+              value: s3
+            - name: RCLONE_CONFIG_R2_PROVIDER
+              value: Cloudflare
+            - name: HOME
+              value: /tmp
+            envFrom:
+            - secretRef:
+                name: r2-backup
+                optional: true
+            resources:
+              requests:
+                cpu: 100m
+                memory: 256Mi
+              limits:
+                cpu: '2'
+                memory: 1Gi
+            securityContext:
+              allowPrivilegeEscalation: false
+            volumeMounts:
+            - name: data
+              mountPath: /src
+              readOnly: false
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: data
+            persistentVolumeClaim:
+              claimName: openwebui-data
+              readOnly: false
+          - name: tmp
+            emptyDir: {}
