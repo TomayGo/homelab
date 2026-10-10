@@ -11,22 +11,25 @@ additionalPrometheusRulesMap:
         for: 30s
         labels:
           severity: critical
+      # 8845HS は負荷時に Tctl 89°C を目標にブーストする（Tjmax 100°C）。
+      # 夜間の PVC バックアップ（zstd -19）や vzdump で 10 分ほど 85°C 前後になるのは正常なので、
+      # warning は 15 分間ずっと 85°C 超、critical はブースト目標を超えたまま 1 分続いたときにする
       - alert: HighCpuTemperature
         annotations:
-          description: CPU temperature exceeded 90°C - thermal throttling risk
+          description: CPU temperature above 95°C (past the 89°C boost target) for 1 minute - cooling may have failed
           summary: '{{ $labels.node }} CPU temp {{ $value }}°C'
         expr: node_hwmon_temp_celsius{chip="pci0000:00_0000:00:18_3",sensor="temp1"}
-          > 90
-        for: 30s
+          > 95
+        for: 1m
         labels:
           severity: critical
       - alert: HighCpuTemperatureWarning
         annotations:
-          description: CPU temperature above 80°C for over 5 minutes
-          summary: '{{ $labels.node }} CPU temp {{ $value }}°C'
-        expr: node_hwmon_temp_celsius{chip="pci0000:00_0000:00:18_3",sensor="temp1"}
-          > 80
-        for: 30s
+          description: CPU temperature stayed above 85°C for the last 15 minutes
+          summary: '{{ $labels.node }} CPU temp >= {{ $value }}°C for 15m'
+        expr: min_over_time(node_hwmon_temp_celsius{chip="pci0000:00_0000:00:18_3",sensor="temp1"}[15m])
+          > 85
+        for: 1m
         labels:
           severity: warning
       - alert: HighCpuUsage
