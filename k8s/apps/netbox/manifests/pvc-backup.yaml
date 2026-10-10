@@ -42,6 +42,8 @@ spec:
             env:
             - name: BACKUP_NAME
               value: netbox/media
+            - name: ZSTD_THREADS
+              value: '6'
             - name: EXCLUDES
               value: lost+found
             - name: RCLONE_CONFIG_R2_TYPE
@@ -59,8 +61,8 @@ spec:
                 cpu: 100m
                 memory: 512Mi
               limits:
-                cpu: '2'
-                memory: 1Gi
+                cpu: '6'
+                memory: 1536Mi
             securityContext:
               allowPrivilegeEscalation: false
               capabilities:

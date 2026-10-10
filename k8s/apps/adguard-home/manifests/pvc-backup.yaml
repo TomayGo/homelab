@@ -40,6 +40,8 @@ spec:
             env:
             - name: BACKUP_NAME
               value: dns/agh-primary
+            - name: ZSTD_THREADS
+              value: '6'
             - name: EXCLUDES
               value: conf/lost+found work/lost+found work/data/filters
             - name: RCLONE_CONFIG_R2_TYPE
@@ -57,8 +59,8 @@ spec:
                 cpu: 100m
                 memory: 512Mi
               limits:
-                cpu: '2'
-                memory: 1Gi
+                cpu: '6'
+                memory: 1536Mi
             securityContext:
               allowPrivilegeEscalation: false
             volumeMounts:
@@ -122,6 +124,8 @@ spec:
             env:
             - name: BACKUP_NAME
               value: dns/agh-replica
+            - name: ZSTD_THREADS
+              value: '6'
             - name: EXCLUDES
               value: conf/lost+found work/lost+found work/data/filters
             - name: RCLONE_CONFIG_R2_TYPE
@@ -139,8 +143,8 @@ spec:
                 cpu: 100m
                 memory: 512Mi
               limits:
-                cpu: '2'
-                memory: 1Gi
+                cpu: '6'
+                memory: 1536Mi
             securityContext:
               allowPrivilegeEscalation: false
             volumeMounts:
