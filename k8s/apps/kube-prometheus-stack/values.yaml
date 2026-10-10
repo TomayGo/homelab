@@ -220,6 +220,10 @@ alertmanager:
       receiver: discord
       repeat_interval: 4h
       routes:
+      # Watchdog は常に firing している死活確認用、InfoInhibitor は抑制用。どちらも通知しない
+      - matchers:
+        - alertname=~"Watchdog|InfoInhibitor"
+        receiver: "null"
       # R2 の無料枠は月末まで戻らないので、4 時間ごとに繰り返すと Discord が埋まる。1 日 1 回にする
       - matchers:
         - alertname=~"R2.*FreeTier.*"
