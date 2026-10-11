@@ -1,0 +1,18 @@
+# VolumeSnapshot の CRD と snapshot-controller。ceph-csi の VolumeSnapshotClass より先に sync する
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: snapshot-controller
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  source:
+    repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    path: k8s/apps/snapshot-controller/manifests
+  syncPolicy:
+    syncOptions:
+    - ServerSideApply=true

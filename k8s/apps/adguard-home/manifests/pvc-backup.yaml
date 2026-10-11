@@ -1,5 +1,76 @@
-# PVC を tar → zstd -19 → Cloudflare R2 に送る（images/backup-tools/pvc-backup.sh）。2世代残す
-# R2 の認証情報は Secret r2-backup（SOPS）。2026-10-09 に有効化した（docs/phase2.md）
+# PVC を tar → zstd -19 → Cloudflare R2 に送る。2世代残す。R2 の認証情報は Secret r2-backup（SOPS）（docs/phase2.md）
+# 元の PVC は直接マウントしない（RWO なので元の Pod と同じノードに縛られ、そのノードが満杯だと Pending になる）。
+#   <名前>       毎晩動く。snap-backup が VolumeSnapshot を取り、<名前>-run から Job を作って終わるまで待つ
+#   <名前>-run   suspend のままのテンプレート。スナップショットからクローン PVC（generic ephemeral volume）を作って
+#                pvc-backup を動かす。どのノードでも動ける。Job を消すとクローン PVC も消える
+# クローン PVC の storage は元の PVC 以上にする（元の PVC を広げたらここも直す。小さいとプロビジョニングに失敗する）
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pvc-backup
+  namespace: dns
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pvc-backup
+  namespace: dns
+rules:
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  verbs:
+  - get
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ''
+  resources:
+  - pods/log
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pvc-backup
+  namespace: dns
+subjects:
+- kind: ServiceAccount
+  name: pvc-backup
+  namespace: dns
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pvc-backup
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -14,21 +85,75 @@ spec:
   failedJobsHistoryLimit: 2
   jobTemplate:
     spec:
-      backoffLimit: 1
+      backoffLimit: 0
       activeDeadlineSeconds: 7200
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: pvc-backup
+          imagePullSecrets:
+          - name: ghcr-pull
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: snap-backup
+            image: ghcr.io/tomaygo/backup-tools:sha-a73619b
+            command:
+            - /bin/sh
+            - /usr/local/bin/snap-backup
+            env:
+            - name: SNAP_PVCS
+              value: conf-agh-primary-0 work-agh-primary-0
+            - name: RUN_CRONJOB
+              value: pvc-backup-agh-primary-run
+            - name: HOME
+              value: /tmp
+            resources:
+              requests:
+                cpu: 10m
+                memory: 32Mi
+              limits:
+                memory: 128Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+            volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: tmp
+            emptyDir: {}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-agh-primary-run
+  namespace: dns
+spec:
+  schedule: 10 3 * * *
+  timeZone: Asia/Tokyo
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 5400
       ttlSecondsAfterFinished: 86400
       template:
         spec:
           restartPolicy: Never
           imagePullSecrets:
           - name: ghcr-pull
-          affinity:
-            podAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-              - topologyKey: kubernetes.io/hostname
-                labelSelector:
-                  matchLabels:
-                    statefulset.kubernetes.io/pod-name: agh-primary-0
           securityContext:
             runAsUser: 0
             runAsGroup: 0
@@ -36,7 +161,7 @@ spec:
               type: RuntimeDefault
           containers:
           - name: backup
-            image: ghcr.io/tomaygo/backup-tools:sha-66c0fe7
+            image: ghcr.io/tomaygo/backup-tools:sha-a73619b
             env:
             - name: BACKUP_NAME
               value: dns/agh-primary
@@ -66,21 +191,45 @@ spec:
             volumeMounts:
             - name: conf
               mountPath: /src/conf
-              readOnly: true
             - name: work
               mountPath: /src/work
-              readOnly: true
             - name: tmp
               mountPath: /tmp
           volumes:
           - name: conf
-            persistentVolumeClaim:
-              claimName: conf-agh-primary-0
-              readOnly: true
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    app.kubernetes.io/managed-by: snap-backup
+                spec:
+                  accessModes:
+                  - ReadWriteOnce
+                  storageClassName: ceph-rbd
+                  dataSource:
+                    apiGroup: snapshot.storage.k8s.io
+                    kind: VolumeSnapshot
+                    name: conf-agh-primary-0-backup
+                  resources:
+                    requests:
+                      storage: 256Mi
           - name: work
-            persistentVolumeClaim:
-              claimName: work-agh-primary-0
-              readOnly: true
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    app.kubernetes.io/managed-by: snap-backup
+                spec:
+                  accessModes:
+                  - ReadWriteOnce
+                  storageClassName: ceph-rbd
+                  dataSource:
+                    apiGroup: snapshot.storage.k8s.io
+                    kind: VolumeSnapshot
+                    name: work-agh-primary-0-backup
+                  resources:
+                    requests:
+                      storage: 16Gi
           - name: tmp
             emptyDir: {}
 ---
@@ -98,21 +247,75 @@ spec:
   failedJobsHistoryLimit: 2
   jobTemplate:
     spec:
-      backoffLimit: 1
+      backoffLimit: 0
       activeDeadlineSeconds: 7200
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: pvc-backup
+          imagePullSecrets:
+          - name: ghcr-pull
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: snap-backup
+            image: ghcr.io/tomaygo/backup-tools:sha-a73619b
+            command:
+            - /bin/sh
+            - /usr/local/bin/snap-backup
+            env:
+            - name: SNAP_PVCS
+              value: conf-agh-replica-0 work-agh-replica-0
+            - name: RUN_CRONJOB
+              value: pvc-backup-agh-replica-run
+            - name: HOME
+              value: /tmp
+            resources:
+              requests:
+                cpu: 10m
+                memory: 32Mi
+              limits:
+                memory: 128Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+            volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: tmp
+            emptyDir: {}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-agh-replica-run
+  namespace: dns
+spec:
+  schedule: 20 3 * * *
+  timeZone: Asia/Tokyo
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
+      backoffLimit: 1
+      activeDeadlineSeconds: 5400
       ttlSecondsAfterFinished: 86400
       template:
         spec:
           restartPolicy: Never
           imagePullSecrets:
           - name: ghcr-pull
-          affinity:
-            podAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-              - topologyKey: kubernetes.io/hostname
-                labelSelector:
-                  matchLabels:
-                    statefulset.kubernetes.io/pod-name: agh-replica-0
           securityContext:
             runAsUser: 0
             runAsGroup: 0
@@ -120,7 +323,7 @@ spec:
               type: RuntimeDefault
           containers:
           - name: backup
-            image: ghcr.io/tomaygo/backup-tools:sha-66c0fe7
+            image: ghcr.io/tomaygo/backup-tools:sha-a73619b
             env:
             - name: BACKUP_NAME
               value: dns/agh-replica
@@ -150,20 +353,44 @@ spec:
             volumeMounts:
             - name: conf
               mountPath: /src/conf
-              readOnly: true
             - name: work
               mountPath: /src/work
-              readOnly: true
             - name: tmp
               mountPath: /tmp
           volumes:
           - name: conf
-            persistentVolumeClaim:
-              claimName: conf-agh-replica-0
-              readOnly: true
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    app.kubernetes.io/managed-by: snap-backup
+                spec:
+                  accessModes:
+                  - ReadWriteOnce
+                  storageClassName: ceph-rbd
+                  dataSource:
+                    apiGroup: snapshot.storage.k8s.io
+                    kind: VolumeSnapshot
+                    name: conf-agh-replica-0-backup
+                  resources:
+                    requests:
+                      storage: 256Mi
           - name: work
-            persistentVolumeClaim:
-              claimName: work-agh-replica-0
-              readOnly: true
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    app.kubernetes.io/managed-by: snap-backup
+                spec:
+                  accessModes:
+                  - ReadWriteOnce
+                  storageClassName: ceph-rbd
+                  dataSource:
+                    apiGroup: snapshot.storage.k8s.io
+                    kind: VolumeSnapshot
+                    name: work-agh-replica-0-backup
+                  resources:
+                    requests:
+                      storage: 16Gi
           - name: tmp
             emptyDir: {}

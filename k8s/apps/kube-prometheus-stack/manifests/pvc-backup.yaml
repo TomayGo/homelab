@@ -1,5 +1,76 @@
-# PVC を tar → zstd -19 → Cloudflare R2 に送る（images/backup-tools/pvc-backup.sh）。2世代残す
-# R2 の認証情報は Secret r2-backup（SOPS）。2026-10-09 に有効化した（docs/phase2.md）
+# PVC を tar → zstd -19 → Cloudflare R2 に送る。2世代残す。R2 の認証情報は Secret r2-backup（SOPS）（docs/phase2.md）
+# 元の PVC は直接マウントしない（RWO なので元の Pod と同じノードに縛られ、そのノードが満杯だと Pending になる）。
+#   <名前>       毎晩動く。snap-backup が VolumeSnapshot を取り、<名前>-run から Job を作って終わるまで待つ
+#   <名前>-run   suspend のままのテンプレート。スナップショットからクローン PVC（generic ephemeral volume）を作って
+#                pvc-backup を動かす。どのノードでも動ける。Job を消すとクローン PVC も消える
+# クローン PVC の storage は元の PVC 以上にする（元の PVC を広げたらここも直す。小さいとプロビジョニングに失敗する）
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: pvc-backup
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: pvc-backup
+  namespace: monitoring
+rules:
+- apiGroups:
+  - snapshot.storage.k8s.io
+  resources:
+  - volumesnapshots
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - batch
+  resources:
+  - cronjobs
+  verbs:
+  - get
+- apiGroups:
+  - batch
+  resources:
+  - jobs
+  verbs:
+  - get
+  - list
+  - watch
+  - create
+  - delete
+- apiGroups:
+  - ''
+  resources:
+  - pods
+  verbs:
+  - get
+  - list
+- apiGroups:
+  - ''
+  resources:
+  - pods/log
+  verbs:
+  - get
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: pvc-backup
+  namespace: monitoring
+subjects:
+- kind: ServiceAccount
+  name: pvc-backup
+  namespace: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: pvc-backup
+---
 apiVersion: batch/v1
 kind: CronJob
 metadata:
@@ -14,21 +85,75 @@ spec:
   failedJobsHistoryLimit: 2
   jobTemplate:
     spec:
+      backoffLimit: 0
+      activeDeadlineSeconds: 7200
+      ttlSecondsAfterFinished: 86400
+      template:
+        spec:
+          restartPolicy: Never
+          serviceAccountName: pvc-backup
+          imagePullSecrets:
+          - name: ghcr-pull
+          securityContext:
+            runAsNonRoot: true
+            runAsUser: 65534
+            runAsGroup: 65534
+            seccompProfile:
+              type: RuntimeDefault
+          containers:
+          - name: snap-backup
+            image: ghcr.io/tomaygo/backup-tools:sha-a73619b
+            command:
+            - /bin/sh
+            - /usr/local/bin/snap-backup
+            env:
+            - name: SNAP_PVCS
+              value: prometheus-kube-prometheus-stack-prometheus-db-prometheus-kube-prometheus-stack-prometheus-0
+            - name: RUN_CRONJOB
+              value: pvc-backup-prometheus-run
+            - name: HOME
+              value: /tmp
+            resources:
+              requests:
+                cpu: 10m
+                memory: 32Mi
+              limits:
+                memory: 128Mi
+            securityContext:
+              allowPrivilegeEscalation: false
+              readOnlyRootFilesystem: true
+              capabilities:
+                drop:
+                - ALL
+            volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: tmp
+            emptyDir: {}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-prometheus-run
+  namespace: monitoring
+spec:
+  schedule: 30 3 * * *
+  timeZone: Asia/Tokyo
+  suspend: true
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 2
+  jobTemplate:
+    spec:
       backoffLimit: 1
-      activeDeadlineSeconds: 10800
+      activeDeadlineSeconds: 5400
       ttlSecondsAfterFinished: 86400
       template:
         spec:
           restartPolicy: Never
           imagePullSecrets:
           - name: ghcr-pull
-          affinity:
-            podAffinity:
-              requiredDuringSchedulingIgnoredDuringExecution:
-              - topologyKey: kubernetes.io/hostname
-                labelSelector:
-                  matchLabels:
-                    statefulset.kubernetes.io/pod-name: prometheus-kube-prometheus-stack-prometheus-0
           securityContext:
             runAsUser: 1000
             runAsGroup: 2000
@@ -37,7 +162,7 @@ spec:
             runAsNonRoot: true
           containers:
           - name: backup
-            image: ghcr.io/tomaygo/backup-tools:sha-66c0fe7
+            image: ghcr.io/tomaygo/backup-tools:sha-a73619b
             env:
             - name: BACKUP_NAME
               value: monitoring/prometheus
@@ -72,13 +197,25 @@ spec:
             volumeMounts:
             - name: db
               mountPath: /src
-              readOnly: true
             - name: tmp
               mountPath: /tmp
           volumes:
           - name: db
-            persistentVolumeClaim:
-              claimName: prometheus-kube-prometheus-stack-prometheus-db-prometheus-kube-prometheus-stack-prometheus-0
-              readOnly: true
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    app.kubernetes.io/managed-by: snap-backup
+                spec:
+                  accessModes:
+                  - ReadWriteOnce
+                  storageClassName: ceph-rbd
+                  dataSource:
+                    apiGroup: snapshot.storage.k8s.io
+                    kind: VolumeSnapshot
+                    name: prometheus-kube-prometheus-stack-prometheus-db-prometheus-kube-prometheus-stack-prometheus-0-backup
+                  resources:
+                    requests:
+                      storage: 20Gi
           - name: tmp
             emptyDir: {}

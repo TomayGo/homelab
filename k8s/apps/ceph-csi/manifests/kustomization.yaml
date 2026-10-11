@@ -4,5 +4,6 @@ resources:
   - ceph-connection.yaml
   - operator-install-v1.0.4.yaml
   - storageclass.yaml
+  - volumesnapshotclass.yaml
 generators:
   - secret-generator.yaml

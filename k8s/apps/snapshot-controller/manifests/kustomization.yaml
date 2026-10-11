@@ -1,0 +1,36 @@
+# VolumeSnapshot の CRD と snapshot-controller（kubernetes-csi/external-snapshotter v8.5.0 をそのまま置いている）。
+# ceph-csi の ctrlplugin にある csi-snapshotter サイドカー（v8.5.0）と版を合わせる。
+# 取得元: client/config/crd/ と deploy/kubernetes/snapshot-controller/（タグ v8.5.0）
+# group snapshot の CRD は入れていない（サイドカーで有効にしていない）
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+  - snapshot.storage.k8s.io_volumesnapshotclasses.yaml
+  - snapshot.storage.k8s.io_volumesnapshotcontents.yaml
+  - snapshot.storage.k8s.io_volumesnapshots.yaml
+  - rbac-snapshot-controller.yaml
+  - setup-snapshot-controller.yaml
+patches:
+  # 使うのは夜間のバックアップのときだけなので 1 台にする（N-1 でメモリに余裕がない）。
+  # ログは既定の --v=5 だと多いので 2 に下げる
+  - target:
+      kind: Deployment
+      name: snapshot-controller
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/image
+        value: registry.k8s.io/sig-storage/snapshot-controller:v8.5.0
+      - op: replace
+        path: /spec/template/spec/containers/0/args
+        value: ["--v=2", "--leader-election=true"]
+      - op: add
+        path: /spec/template/spec/containers/0/resources
+        value:
+          requests:
+            cpu: 10m
+            memory: 32Mi
+          limits:
+            memory: 128Mi
