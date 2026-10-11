@@ -1,0 +1,5 @@
+# ansible が host_vars/ap/wifi_devices.sops.yaml から作る。ここは直接直さない
+# MAC<TAB>名前。ここにない端末は metrics.sh が OUI からベンダーを推定して出す
+{% for mac, name in (wifi_devices | default({})).items() if name %}
+{{ mac | lower }}	{{ name }}
+{% endfor %}

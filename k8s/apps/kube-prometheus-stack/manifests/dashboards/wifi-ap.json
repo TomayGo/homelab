@@ -113,13 +113,13 @@
       "id": 51,
       "targets": [
         {
-          "expr": "hostapd_client_signal_dbm",
-          "legendFormat": "{{band}} {{mac}}",
+          "expr": "hostapd_client_signal_dbm * on(interface, mac) group_left(band, device) topk by(interface, mac)(1, hostapd_client_info) or on(interface, mac) label_replace(hostapd_client_signal_dbm * on(interface) group_left(band) max by(interface, band)(hostapd_clients_total >= bool 0), \"device\", \"$1\", \"mac\", \"(.*)\")",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
-          }
+          },
+          "legendFormat": "{{device}} ({{band}})"
         }
       ],
       "title": "Client signal strength",
@@ -140,15 +140,15 @@
               },
               {
                 "color": "yellow",
-                "value": 100
+                "value": 100000000
               },
               {
                 "color": "green",
-                "value": 500
+                "value": 500000000
               }
             ]
           },
-          "unit": "Mbps"
+          "unit": "bps"
         }
       },
       "gridPos": {
@@ -167,17 +167,152 @@
       },
       "targets": [
         {
-          "expr": "hostapd_client_tx_bitrate_mbps",
-          "legendFormat": "{{band}} {{mac}}",
+          "expr": "hostapd_client_tx_bitrate_mbps * 1e6 * on(interface, mac) group_left(band, device) topk by(interface, mac)(1, hostapd_client_info) or on(interface, mac) label_replace(hostapd_client_tx_bitrate_mbps * 1e6 * on(interface) group_left(band) max by(interface, band)(hostapd_clients_total >= bool 0), \"device\", \"$1\", \"mac\", \"(.*)\")",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
-          }
+          },
+          "legendFormat": "{{device}} ({{band}})"
         }
       ],
       "title": "Client TX bitrate",
       "type": "stat"
+    },
+    {
+      "id": 55,
+      "type": "table",
+      "title": "接続中の端末",
+      "description": "端末名は ansible/host_vars/ap/wifi_devices.sops.yaml で付ける。名前がない端末は MAC の先頭 3 オクテット（OUI）から推定したベンダーと、MAC の末尾 2 オクテットで表示する。「ランダム MAC」はスマホなどのプライベートアドレスで、ベンダーは分からない。",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P8D9ADF90DB2E3ECF"
+      },
+      "gridPos": {
+        "h": 7,
+        "w": 24,
+        "x": 0,
+        "y": 8
+      },
+      "targets": [
+        {
+          "expr": "max by(interface, mac)(hostapd_client_signal_dbm) * on(interface, mac) group_left(band, vendor, device) topk by(interface, mac)(1, hostapd_client_info)",
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P8D9ADF90DB2E3ECF"
+          },
+          "instant": true,
+          "range": false,
+          "format": "table"
+        },
+        {
+          "expr": "max by(interface, mac)(hostapd_client_tx_bitrate_mbps) * 1e6 * on(interface, mac) group_left(band, vendor, device) topk by(interface, mac)(1, hostapd_client_info)",
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P8D9ADF90DB2E3ECF"
+          },
+          "instant": true,
+          "range": false,
+          "format": "table"
+        }
+      ],
+      "transformations": [
+        {
+          "id": "merge",
+          "options": {}
+        },
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "Time": true,
+              "interface": true
+            },
+            "indexByName": {
+              "device": 0,
+              "vendor": 1,
+              "mac": 2,
+              "band": 3,
+              "Value #A": 4,
+              "Value #B": 5
+            },
+            "renameByName": {
+              "device": "端末",
+              "vendor": "ベンダー（推定）",
+              "mac": "MAC",
+              "band": "帯域",
+              "Value #A": "信号",
+              "Value #B": "リンク速度（AP→端末）"
+            }
+          }
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "信号"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "dBm"
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "red",
+                      "value": null
+                    },
+                    {
+                      "color": "yellow",
+                      "value": -70
+                    },
+                    {
+                      "color": "green",
+                      "value": -50
+                    }
+                  ]
+                }
+              },
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "リンク速度（AP→端末）"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "bps"
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "showHeader": true,
+        "sortBy": [
+          {
+            "displayName": "端末",
+            "desc": false
+          }
+        ]
+      }
     },
     {
       "datasource": {
@@ -190,25 +325,25 @@
             "fillOpacity": 15,
             "lineWidth": 2
           },
-          "unit": "Bps"
+          "unit": "bps"
         }
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 0,
-        "y": 8
+        "y": 15
       },
       "id": 53,
       "targets": [
         {
-          "expr": "rate(hostapd_client_rx_bytes_total[1m])",
-          "legendFormat": "{{band}} {{mac}}",
+          "expr": "rate(hostapd_client_rx_bytes_total[1m]) * 8 * on(interface, mac) group_left(band, device) topk by(interface, mac)(1, hostapd_client_info) or on(interface, mac) label_replace(rate(hostapd_client_rx_bytes_total[1m]) * 8 * on(interface) group_left(band) max by(interface, band)(hostapd_clients_total >= bool 0), \"device\", \"$1\", \"mac\", \"(.*)\")",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
-          }
+          },
+          "legendFormat": "{{device}} ({{band}})"
         }
       ],
       "title": "Client traffic (RX)",
@@ -225,25 +360,25 @@
             "fillOpacity": 15,
             "lineWidth": 2
           },
-          "unit": "Bps"
+          "unit": "bps"
         }
       },
       "gridPos": {
         "h": 8,
         "w": 12,
         "x": 12,
-        "y": 8
+        "y": 15
       },
       "id": 54,
       "targets": [
         {
-          "expr": "rate(hostapd_client_tx_bytes_total[1m])",
-          "legendFormat": "{{band}} {{mac}}",
+          "expr": "rate(hostapd_client_tx_bytes_total[1m]) * 8 * on(interface, mac) group_left(band, device) topk by(interface, mac)(1, hostapd_client_info) or on(interface, mac) label_replace(rate(hostapd_client_tx_bytes_total[1m]) * 8 * on(interface) group_left(band) max by(interface, band)(hostapd_clients_total >= bool 0), \"device\", \"$1\", \"mac\", \"(.*)\")",
           "refId": "A",
           "datasource": {
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
-          }
+          },
+          "legendFormat": "{{device}} ({{band}})"
         }
       ],
       "title": "Client traffic (TX)",

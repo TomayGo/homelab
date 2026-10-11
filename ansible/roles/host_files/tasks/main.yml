@@ -18,7 +18,7 @@
   loop: "{{ host_files | rejectattr('template', 'defined') | list }}"
   loop_control:
     label: "{{ item.path }}"
-  notify: "{{ item.notify | default(omit) }}"
+  register: host_files_copy
 
 - name: Files (template)
   ansible.builtin.template:
@@ -30,6 +30,17 @@
   loop: "{{ host_files | selectattr('template', 'defined') | list }}"
   loop_control:
     label: "{{ item.path }}"
-  notify: "{{ item.notify | default(omit) }}"
+  register: host_files_template
   # 秘密情報（Wi-Fi のパスフレーズなど）を diff に出さない
   diff: false
+
+# ループのタスクに notify: "{{ item.notify }}" と書くと、どれか 1 つが変わっただけで全項目の handler が動く
+# （2026-10-12、metrics.sh だけの変更で hostapd 再起動と update-grub まで走った）。変わったファイルの分だけ通知する
+- name: Notify handlers for changed files
+  ansible.builtin.debug:
+    msg: "{{ item.item.path }} -> {{ item.item.notify }}"
+  loop: "{{ (host_files_copy.results + host_files_template.results) | selectattr('changed') | selectattr('item.notify', 'defined') | list }}"
+  loop_control:
+    label: "{{ item.item.path }}"
+  changed_when: true
+  notify: "{{ item.item.notify }}"

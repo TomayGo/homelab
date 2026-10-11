@@ -21,3 +21,6 @@ host_files:
   - {path: /etc/systemd/system/vpnserver.service, owner: root, group: root, mode: '0644', notify: Reload systemd}
   - {path: /usr/local/bin/metrics.sh, owner: root, group: root, mode: '0755', notify: Restart wifi-exporter}
   - {path: /usr/local/bin/wifi-watchdog.sh, owner: root, group: root, mode: '0755'}
+  - {path: /etc/wifi-exporter/devices.tsv, owner: root, group: root, mode: '0644', template: true}
+  - {path: /etc/systemd/system/wifi-oui-update.service, owner: root, group: root, mode: '0644', notify: Reload systemd}
+  - {path: /etc/systemd/system/wifi-oui-update.timer, owner: root, group: root, mode: '0644', notify: Reload systemd}  # enable はこのロールではしない（2026-10-12 に手で enable --now 済み）

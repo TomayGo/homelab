@@ -1,0 +1,11 @@
+[Unit]
+Description=Fetch the OUI vendor list for the Wi-Fi metrics exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# 失敗しても前回の一覧を残す (一時ファイルに取ってから置き換える)
+ExecStart=/bin/sh -c 'mkdir -p /var/lib/wifi-exporter && curl -fsSL --max-time 120 https://www.wireshark.org/download/automated/data/manuf.gz | gzip -dc > /var/lib/wifi-exporter/manuf.tmp && test -s /var/lib/wifi-exporter/manuf.tmp && mv /var/lib/wifi-exporter/manuf.tmp /var/lib/wifi-exporter/manuf'
+# 一覧が変わったら、ベンダーのキャッシュも作り直させる
+ExecStartPost=/bin/rm -f /run/wifi-exporter/vendor.tsv

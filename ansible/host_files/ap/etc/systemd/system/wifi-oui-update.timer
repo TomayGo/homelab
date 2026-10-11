@@ -1,0 +1,11 @@
+[Unit]
+Description=Fetch the OUI vendor list weekly
+
+[Timer]
+OnBootSec=10min
+OnCalendar=weekly
+RandomizedDelaySec=6h
+Persistent=true
+
+[Install]
+WantedBy=timers.target
