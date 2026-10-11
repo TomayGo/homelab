@@ -1,5 +1,5 @@
 [Unit]
-Description=Detect and recover rtw89 6GHz firmware wedge
+Description=Detect and recover Wi-Fi AP driver stalls (6GHz rtw89, 5GHz rtw88)
 
 [Service]
 Type=oneshot
