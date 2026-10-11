@@ -32,6 +32,8 @@ cleanup() {
   done
 }
 trap cleanup EXIT
+# activeDeadlineSeconds や Job の削除で SIGTERM を受けたときも後片付けする
+trap 'exit 143' TERM INT
 
 for p in $SNAP_PVCS; do
   # 前回の残りがあれば消してから作る
