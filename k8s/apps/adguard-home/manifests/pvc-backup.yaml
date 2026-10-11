@@ -102,7 +102,7 @@ spec:
               type: RuntimeDefault
           containers:
           - name: snap-backup
-            image: ghcr.io/tomaygo/backup-tools:sha-a73619b
+            image: ghcr.io/tomaygo/backup-tools:sha-3cbb613
             command:
             - /bin/sh
             - /usr/local/bin/snap-backup
@@ -161,7 +161,7 @@ spec:
               type: RuntimeDefault
           containers:
           - name: backup
-            image: ghcr.io/tomaygo/backup-tools:sha-a73619b
+            image: ghcr.io/tomaygo/backup-tools:sha-3cbb613
             env:
             - name: BACKUP_NAME
               value: dns/agh-primary
@@ -264,7 +264,7 @@ spec:
               type: RuntimeDefault
           containers:
           - name: snap-backup
-            image: ghcr.io/tomaygo/backup-tools:sha-a73619b
+            image: ghcr.io/tomaygo/backup-tools:sha-3cbb613
             command:
             - /bin/sh
             - /usr/local/bin/snap-backup
@@ -323,7 +323,7 @@ spec:
               type: RuntimeDefault
           containers:
           - name: backup
-            image: ghcr.io/tomaygo/backup-tools:sha-a73619b
+            image: ghcr.io/tomaygo/backup-tools:sha-3cbb613
             env:
             - name: BACKUP_NAME
               value: dns/agh-replica
