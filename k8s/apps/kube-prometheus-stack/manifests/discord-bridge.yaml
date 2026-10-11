@@ -18,7 +18,7 @@ spec:
   template:
     metadata:
       annotations:
-        kubectl.kubernetes.io/restartedAt: '2026-09-08T16:32:18+09:00'
+        kubectl.kubernetes.io/restartedAt: '2026-10-11T12:00:00+09:00'
       labels:
         app: discord-bridge
     spec:
@@ -61,6 +61,8 @@ spec:
       restartPolicy: Always
       schedulerName: default-scheduler
       securityContext: {}
+      # 通し番号の状態（ConfigMap discord-bridge-state）を読み書きする
+      serviceAccountName: discord-bridge
       terminationGracePeriodSeconds: 30
       volumes:
       - configMap:
@@ -86,11 +88,14 @@ apiVersion: v1
 data:
   bridge.py: |
     #!/usr/bin/env python3
+    from datetime import datetime
     from http.server import HTTPServer, BaseHTTPRequestHandler
     import json
     import os
-    import urllib.request
     import ssl
+    import time
+    import urllib.error
+    import urllib.request
 
     DISCORD_WEBHOOK = os.environ["DISCORD_WEBHOOK"]
     THREAD_ID = os.environ["THREAD_ID"]
@@ -101,6 +106,104 @@ data:
         "warning": 0xFFA500,
         "info": 0x3498DB,
     }
+
+    # 通し番号の状態。bridge は 2 台あるので Pod 内ではなく ConfigMap に置き、
+    # resourceVersion で楽観ロックして更新する（ConfigMap は初回に bridge が作る）
+    SA_DIR = "/var/run/secrets/kubernetes.io/serviceaccount"
+    K8S_API = "https://kubernetes.default.svc"
+    STATE_CM = "discord-bridge-state"
+    # 最後に通知してから 7 日たったアラートは番号の対応を忘れる
+    STATE_TTL = 7 * 24 * 3600
+
+    def k8s(method, path, body=None):
+        with open(f"{SA_DIR}/token") as f:
+            token = f.read().strip()
+        req = urllib.request.Request(
+            K8S_API + path,
+            data=json.dumps(body).encode("utf-8") if body is not None else None,
+            headers={"Authorization": f"Bearer {token}", "Content-Type": "application/json"},
+            method=method,
+        )
+        ctx = ssl.create_default_context(cafile=f"{SA_DIR}/ca.crt")
+        with urllib.request.urlopen(req, context=ctx, timeout=5) as r:
+            return json.load(r)
+
+    def alert_key(alert):
+        # 同じアラートでも、一度 resolved になってから再発すれば startsAt が変わるので別番号になる
+        return f"{alert.get('fingerprint', '')}@{alert.get('startsAt', '')}"
+
+    def update_numbers(state, alerts, now):
+        """alerts に番号を割り当て、[(番号, 再通知か)] を返す。state は書き換える"""
+        result = []
+        for alert in alerts:
+            entry = state["alerts"].get(alert_key(alert))
+            if alert["status"] == "firing":
+                if entry is None:
+                    entry = {"n": state["next"], "resolved": False}
+                    state["next"] += 1
+                    state["alerts"][alert_key(alert)] = entry
+                    result.append((entry["n"], False))
+                else:
+                    result.append((entry["n"], not entry["resolved"]))
+            elif entry is None:
+                # この仕組みを入れる前に発火したもの
+                result.append((None, False))
+                continue
+            else:
+                entry["resolved"] = True
+                result.append((entry["n"], False))
+            entry["seen"] = now
+        state["alerts"] = {
+            k: v for k, v in state["alerts"].items() if now - v["seen"] < STATE_TTL
+        }
+        return result
+
+    def assign_numbers(alerts):
+        with open(f"{SA_DIR}/namespace") as f:
+            ns = f.read().strip()
+        path = f"/api/v1/namespaces/{ns}/configmaps"
+        for _ in range(5):
+            try:
+                cm = k8s("GET", f"{path}/{STATE_CM}")
+                state = json.loads(cm["data"]["state.json"])
+            except urllib.error.HTTPError as e:
+                if e.code != 404:
+                    raise
+                cm = None
+                state = {"next": 1, "alerts": {}}
+            result = update_numbers(state, alerts, int(time.time()))
+            data = {"state.json": json.dumps(state, separators=(",", ":"))}
+            try:
+                if cm is None:
+                    k8s("POST", path, {
+                        "apiVersion": "v1", "kind": "ConfigMap",
+                        "metadata": {"name": STATE_CM, "namespace": ns},
+                        "data": data,
+                    })
+                else:
+                    cm["data"] = data
+                    k8s("PUT", f"{path}/{STATE_CM}", cm)
+                return result
+            except urllib.error.HTTPError as e:
+                # もう 1 台が先に更新した（409）か作った（409 AlreadyExists）。読み直してやり直す
+                if e.code != 409:
+                    raise
+        raise RuntimeError("state update kept conflicting")
+
+    def format_duration(alert):
+        try:
+            start = datetime.fromisoformat(alert["startsAt"])
+            end = datetime.fromisoformat(alert["endsAt"])
+        except (KeyError, ValueError):
+            return None
+        minutes = int((end - start).total_seconds()) // 60
+        if minutes < 0:
+            return None
+        if minutes < 60:
+            return f"{minutes}m"
+        if minutes < 24 * 60:
+            return f"{minutes // 60}h {minutes % 60}m"
+        return f"{minutes // (24 * 60)}d {minutes // 60 % 24}h"
 
     def post_discord(content, embeds):
         url = f"{DISCORD_WEBHOOK}?thread_id={THREAD_ID}"
@@ -122,17 +225,28 @@ data:
     class Handler(BaseHTTPRequestHandler):
         def do_POST(self):
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
-            for alert in body.get("alerts", []):
+            alerts = body.get("alerts", [])
+            try:
+                numbers = assign_numbers(alerts)
+            except Exception as e:
+                # 番号が取れなくても通知は落とさない
+                print(f"numbering failed: {e}")
+                numbers = [(None, False)] * len(alerts)
+
+            for alert, (number, repeat) in zip(alerts, numbers):
                 status = alert["status"]
                 labels = alert.get("labels", {})
                 annotations = alert.get("annotations", {})
                 severity = labels.get("severity", "warning")
                 alertname = labels.get("alertname", "Unknown")
 
-                if status == "firing":
-                    title = f"\U0001F6A8 FIRING: {alertname}"
+                num = f"#{number} " if number is not None else ""
+                if status != "firing":
+                    title = f"✅ {num}RESOLVED: {alertname}"
+                elif repeat:
+                    title = f"\U0001F501 {num}STILL FIRING: {alertname}"
                 else:
-                    title = f"✅ RESOLVED: {alertname}"
+                    title = f"\U0001F6A8 {num}FIRING: {alertname}"
 
                 desc_parts = []
                 if annotations.get("summary"):
@@ -155,6 +269,10 @@ data:
                 if label_str:
                     embed["fields"].append({"name": "Labels", "value": label_str, "inline": False})
                 embed["fields"].append({"name": "Severity", "value": severity.upper(), "inline": True})
+                if status != "firing":
+                    duration = format_duration(alert)
+                    if duration:
+                        embed["fields"].append({"name": "Duration", "value": duration, "inline": True})
 
                 content = MENTION if status == "firing" else ""
                 post_discord(content, [embed])
@@ -165,8 +283,44 @@ data:
         def log_message(self, fmt, *args):
             print(f"[bridge] {fmt % args}")
 
-    HTTPServer(("0.0.0.0", 9095), Handler).serve_forever()
+    if __name__ == "__main__":
+        HTTPServer(("0.0.0.0", 9095), Handler).serve_forever()
 kind: ConfigMap
 metadata:
   name: discord-bridge-script
+  namespace: monitoring
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: discord-bridge
+  namespace: monitoring
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: discord-bridge
+  namespace: monitoring
+rules:
+# create は resourceNames で絞れないので分けて書く
+- apiGroups: [""]
+  resources: [configmaps]
+  verbs: [create]
+- apiGroups: [""]
+  resources: [configmaps]
+  resourceNames: [discord-bridge-state]
+  verbs: [get, update]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: discord-bridge
+  namespace: monitoring
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: discord-bridge
+subjects:
+- kind: ServiceAccount
+  name: discord-bridge
   namespace: monitoring
