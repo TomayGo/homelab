@@ -2307,7 +2307,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "Bps",
+          "unit": "bps",
           "custom": {
             "drawStyle": "line",
             "lineWidth": 1,
@@ -2357,7 +2357,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "(rate(pve_network_receive_bytes_total{id=~\"(qemu|lxc)/.*\"}[$__rate_interval])) * on(id) group_left(name, node) topk by(id)(1, pve_guest_info{node=~\"$host\"})",
+          "expr": "(rate(pve_network_receive_bytes_total{id=~\"(qemu|lxc)/.*\"}[$__rate_interval]) * 8) * on(id) group_left(name, node) topk by(id)(1, pve_guest_info{node=~\"$host\"})",
           "legendFormat": "{{name}} rx",
           "refId": "A"
         },
@@ -2366,7 +2366,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "(rate(pve_network_transmit_bytes_total{id=~\"(qemu|lxc)/.*\"}[$__rate_interval])) * on(id) group_left(name, node) topk by(id)(1, pve_guest_info{node=~\"$host\"})",
+          "expr": "(rate(pve_network_transmit_bytes_total{id=~\"(qemu|lxc)/.*\"}[$__rate_interval]) * 8) * on(id) group_left(name, node) topk by(id)(1, pve_guest_info{node=~\"$host\"})",
           "legendFormat": "{{name}} tx",
           "refId": "B"
         }
@@ -3455,7 +3455,7 @@
       },
       "fieldConfig": {
         "defaults": {
-          "unit": "Bps",
+          "unit": "bps",
           "custom": {
             "drawStyle": "line",
             "lineWidth": 1,
@@ -3505,7 +3505,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "rate(node_network_receive_bytes_total{device=~\"tb.*\",node=~\"$host\"}[$__rate_interval])",
+          "expr": "rate(node_network_receive_bytes_total{device=~\"tb.*\",node=~\"$host\"}[$__rate_interval]) * 8",
           "legendFormat": "{{node}} {{device}} rx",
           "refId": "A"
         },
@@ -3514,7 +3514,7 @@
             "type": "prometheus",
             "uid": "P8D9ADF90DB2E3ECF"
           },
-          "expr": "rate(node_network_transmit_bytes_total{device=~\"tb.*\",node=~\"$host\"}[$__rate_interval])",
+          "expr": "rate(node_network_transmit_bytes_total{device=~\"tb.*\",node=~\"$host\"}[$__rate_interval]) * 8",
           "legendFormat": "{{node}} {{device}} tx",
           "refId": "B"
         }
