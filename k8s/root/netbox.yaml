@@ -12,7 +12,7 @@ spec:
   sources:
   - repoURL: https://charts.netbox.oss.netboxlabs.com/
     chart: netbox
-    targetRevision: 8.3.91
+    targetRevision: 8.3.92
     helm:
       releaseName: netbox
       valueFiles:
