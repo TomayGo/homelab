@@ -1,6 +1,7 @@
 # JR 在来線デジタル列車無線の受信機（TomayGo/jr-radio-web = soltia48/jr-conventional-line-radio-receiver v1.6.0 の Web サーバー版）
 # IQ は LXC 104 sdr（192.168.1.86:1240）の rtl_tcp から受ける。rtl_tcp は同時に 1 クライアントだけなので、レプリカは常に 1
-# 受信セッションと録音はこの Pod の中にある。Pod が入れ替わると受信は止まるので、画面で「受信開始」を押し直す
+# 受信セッションと録音はこの Pod の中にある。JRW_AUTOSTART で、起動時に保存済みの設定（/data/config/settings.json）で受信と録音を始め、
+# 落ちたら 10 秒ごとにやり直す。画面で「停止」を押したあとは、次の「受信開始」までやり直さない
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -31,11 +32,13 @@ spec:
           type: RuntimeDefault
       containers:
         - name: jr-radio
-          image: ghcr.io/tomaygo/jr-radio-web:sha-c2191cb
+          image: ghcr.io/tomaygo/jr-radio-web:sha-5c7c774
           ports:
             - name: http
               containerPort: 8080
           env:
+            - name: JRW_AUTOSTART
+              value: "1"
             # 設定ファイル（/data/config/settings.json）がまだ無いときの初期値。画面で変えた値はそちらに残る
             - name: JRW_DEFAULT_HOST
               value: 192.168.1.86
