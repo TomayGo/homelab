@@ -1,0 +1,13 @@
+#!/usr/sbin/nft -f
+# {{ ansible_managed }}
+# rtl_tcp は認証が無く、つないだ相手に IQ をそのまま流す。受信内容を外へ出さないため（電波法59条）、送信元を絞る
+flush ruleset
+
+table inet filter {
+	chain input {
+		type filter hook input priority filter; policy accept;
+		iif "lo" accept
+		tcp dport {{ rtl_tcp_port }} ip saddr { {{ rtl_tcp_allowed_sources | join(', ') }} } accept
+		tcp dport {{ rtl_tcp_port }} drop
+	}
+}

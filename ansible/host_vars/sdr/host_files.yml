@@ -1,0 +1,2 @@
+# roles/host_files が配るファイル。rtl_tcp まわりは roles/rtl_sdr_blog が持つので、ここには無い
+host_files: []

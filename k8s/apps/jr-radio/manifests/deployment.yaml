@@ -1,0 +1,90 @@
+# JR 在来線デジタル列車無線の受信機（TomayGo/jr-radio-web = soltia48/jr-conventional-line-radio-receiver v1.6.0 の Web サーバー版）
+# IQ は LXC 104 sdr（192.168.1.86:1240）の rtl_tcp から受ける。rtl_tcp は同時に 1 クライアントだけなので、レプリカは常に 1
+# 受信セッションと録音はこの Pod の中にある。Pod が入れ替わると受信は止まるので、画面で「受信開始」を押し直す
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: jr-radio
+  namespace: jr-radio
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: jr-radio
+  template:
+    metadata:
+      labels:
+        app: jr-radio
+    spec:
+      imagePullSecrets:
+        - name: ghcr-pull
+      # 終了時に録音を閉じる（WAV のヘッダーと session.json を書き切る）
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532
+        runAsGroup: 65532
+        fsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: jr-radio
+          image: ghcr.io/tomaygo/jr-radio-web:sha-3cb10eb
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            # 設定ファイル（/data/config/settings.json）がまだ無いときの初期値。画面で変えた値はそちらに残る
+            - name: JRW_DEFAULT_HOST
+              value: 192.168.1.86
+            - name: JRW_DEFAULT_PORT
+              value: "1240"
+            - name: JRW_DEFAULT_PROFILE
+              value: east
+            - name: JRW_DEFAULT_CENTER_MHZ
+              value: "352.603125"
+            - name: JRW_DEFAULT_RATE
+              value: "240000"
+            # 自動ゲインでは ADC が飽和して、同期するチャンネルが半分になる（2026-10-17、仙台で確認）
+            - name: JRW_DEFAULT_GAIN_DB
+              value: "25.4"
+            # 残留の +200 Hz 程度はアプリが追従する
+            - name: JRW_DEFAULT_PPM
+              value: "0"
+            - name: TZ
+              value: Asia/Tokyo
+          envFrom:
+            - secretRef:
+                name: jr-radio-auth
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: http
+            periodSeconds: 30
+            failureThreshold: 4
+          # 240 kS/s の復調と音声合成。値は仮置きで、動かしてから 7 日間の p95 に合わせる
+          resources:
+            requests:
+              cpu: 250m
+              memory: 128Mi
+            limits:
+              memory: 512Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: jr-radio-data

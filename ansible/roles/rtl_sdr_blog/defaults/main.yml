@@ -1,0 +1,15 @@
+# rtlsdrblog/rtl-sdr-blog をソースからビルドする。V4L（チューナー R828S）は V1.4.0 から対応
+# Debian の librtlsdr / rtl-sdr パッケージは V4L を知らず、受信できない（信号が来ない）ので使わない
+rtl_sdr_blog_version: V1.4.0
+rtl_sdr_blog_commit: aed0ea19f3a273370a13c9009b96313c75d54c7b
+
+# rtl_tcp の待受。k8s の jr-radio がここへ接続する（アプリは IP アドレスしか受け付けない）
+rtl_tcp_address: 192.168.1.86
+rtl_tcp_port: 1240
+
+# rtl_tcp に接続してよい送信元。k8s の Pod は Talos ノードの LAN アドレスで出てくる。pve-1 は確認用
+rtl_tcp_allowed_sources:
+  - 192.168.1.79
+  - 192.168.1.82
+  - 192.168.1.83
+  - 192.168.1.84

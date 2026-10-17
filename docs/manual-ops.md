@@ -62,6 +62,25 @@ pvesh create /cluster/backup --id backup-every3d --schedule '*-*-1/3 10:00' \
 - `hostpci`（`101 dtv`、`103 ap`）と、`/etc/modprobe.d/vfio.conf`、`/etc/modules-load.d/vfio.conf`（pve-2、pve-3）は、Ansibleでは触らない
 - dtvのiGPUは、ACPI VFCTから取り出したVBIOSを`romfile`として渡している
 
+### RTL-SDR（LXC 104 sdr）
+
+JR在来線デジタル列車無線の受信用。RTL-SDR Blog V4L（USB `0bda:2838`）を挿したPVEホストでLXC 104がrtl_tcpを動かし、k8sの`jr-radio`（`k8s/apps/jr-radio/`、http://192.168.1.94/）がそこへ接続する。
+
+- LXC 104のLAN IPは192.168.1.86（固定、MAC `BC:24:11:86:21:17`）。HGWでもこの組み合わせを予約する。jr-radioはIPアドレスでしか接続先を受け付けない
+- ホスト側（ブラックリストとudevルール）と、LXCの中（rtl-sdr-blogのビルド、rtl_tcp、nftables）は`ansible/playbooks/sdr.yml`。ドングルを挿すホストは、インベントリの`sdr_usb_hosts`に書く
+- LXCの設定のうち、次の2行はAPIトークンでは書けないので手で足す。`/etc/pve/lxc/104.conf`の末尾に追記してから、`pct reboot 104`
+
+  ```
+  lxc.cgroup2.devices.allow: c 189:* rwm
+  lxc.mount.entry: /dev/bus/usb dev/bus/usb none bind,optional,create=dir
+  ```
+
+  `/dev/bus/usb`をまるごとbindするので、挿し直してデバイス番号が変わってもLXCの設定は変えなくてよい
+- ドングルを別のホストに移すときは、`sdr_usb_hosts`を書き換えてplaybookを流し、`pct migrate 104 <ホスト> --restart`で移す（rootfsはceph-pool）
+- 確認：LXCの中で`systemctl stop rtl_tcp && rtl_test -t`が「RTL-SDR Blog V4 Lite Detected」を出すこと。終わったら`systemctl start rtl_tcp`
+- Debianの`librtlsdr`/`rtl-sdr`パッケージはV4Lに対応していない（信号が来ない）。入れない
+- rtl_tcpには認証がなく、同時に1クライアントしかつながらない。LXCのnftablesで、k8sノード（.82〜.84）とpve-1以外からの接続を落としている（受信内容を外に出さないため。電波法59条）
+
 ## ceph-csi-operatorのアップグレード
 
 - Renovateの対象外にしている。イメージのタグだけを上げると、install.yamlに含まれるCRDと食い違うため

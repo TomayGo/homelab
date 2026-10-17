@@ -1,0 +1,3 @@
+# RTL-SDR（0bda:2838、RTL-SDR Blog V4L）を非特権 LXC（104 sdr）の中から開けるようにする
+# コンテナの root はホストの uid 100000 なので、所有者が root のままでは開けない
+SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="0bda", ATTR{idProduct}=="2838", MODE="0666"

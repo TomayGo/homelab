@@ -1,0 +1,22 @@
+# {{ ansible_managed }}
+# ドングルが抜けている間は起動に失敗して終わるので、間隔を空けて起動し続ける
+[Unit]
+Description=rtl_tcp (RTL-SDR Blog {{ rtl_sdr_blog_version }})
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=rtlsdr
+Group=rtlsdr
+ExecStart=/usr/local/bin/rtl_tcp -a {{ rtl_tcp_address }} -p {{ rtl_tcp_port }}
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

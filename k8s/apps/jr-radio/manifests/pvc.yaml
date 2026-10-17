@@ -1,0 +1,14 @@
+# 録音（files.jsonl と、通話ごとの 8 kHz WAV、session.json）と、画面の設定（config/settings.json）
+# 通話 1 時間で約 58 MB。足りなくなったら kubectl patch で広げる（ceph-rbd はオンラインで拡張できる）
+# R2 へのバックアップはしない。受信内容を外へ出さないため（電波法59条）と、R2 の無料枠に収めるため
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: jr-radio-data
+  namespace: jr-radio
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: ceph-rbd
+  resources:
+    requests:
+      storage: 10Gi

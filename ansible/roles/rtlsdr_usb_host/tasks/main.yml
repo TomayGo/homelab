@@ -1,0 +1,18 @@
+# RTL-SDR を挿す PVE ホスト（inventory の sdr_usb_hosts）。LXC 側の設定（cgroup と /dev/bus/usb の bind）は /etc/pve にあり、手で管理する（docs/manual-ops.md）
+# すでに dvb_usb_rtl28xxu が読み込まれていたら、ここでは外さない。ドングルを挿し直すか modprobe -r で外す
+- name: /etc/modprobe.d/blacklist-rtl28xxu.conf
+  ansible.builtin.copy:
+    src: blacklist-rtl28xxu.conf
+    dest: /etc/modprobe.d/blacklist-rtl28xxu.conf
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: /etc/udev/rules.d/60-rtl-sdr-lxc.rules
+  ansible.builtin.copy:
+    src: 60-rtl-sdr-lxc.rules
+    dest: /etc/udev/rules.d/60-rtl-sdr-lxc.rules
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload udev rules for RTL-SDR

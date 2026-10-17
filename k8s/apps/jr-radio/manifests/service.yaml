@@ -1,0 +1,16 @@
+# LAN だけに出す（MetalLB の VIP）。tailnet やインターネットには出さない（電波法59条）。認証はアプリの Basic 認証
+apiVersion: v1
+kind: Service
+metadata:
+  name: jr-radio-lan
+  namespace: jr-radio
+spec:
+  type: LoadBalancer
+  loadBalancerIP: 192.168.1.94
+  selector:
+    app: jr-radio
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

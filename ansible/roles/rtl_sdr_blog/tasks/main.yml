@@ -1,0 +1,79 @@
+- name: Build dependencies
+  ansible.builtin.apt:
+    name: [git, cmake, build-essential, pkg-config, libusb-1.0-0-dev, usbutils, nftables]
+    state: present
+
+- name: Installed rtl-sdr-blog version
+  ansible.builtin.slurp:
+    src: /usr/local/share/rtl-sdr-blog.version
+  register: rtl_sdr_blog_installed
+  failed_when: false
+  check_mode: false
+
+- name: Build and install rtl-sdr-blog {{ rtl_sdr_blog_version }}
+  when: (rtl_sdr_blog_installed.content | default('') | b64decode | trim) != rtl_sdr_blog_commit
+  block:
+    - name: Source ({{ rtl_sdr_blog_version }})
+      ansible.builtin.git:
+        repo: https://github.com/rtlsdrblog/rtl-sdr-blog
+        dest: /usr/local/src/rtl-sdr-blog
+        version: "{{ rtl_sdr_blog_commit }}"
+        force: true
+
+    # コンテナには udev が無いので、udev ルールは入れない（USB の権限は PVE ホスト側の rtlsdr_usb_host で付ける）
+    - name: Build
+      ansible.builtin.shell: |
+        set -e
+        rm -rf build && mkdir build && cd build
+        cmake .. -DCMAKE_BUILD_TYPE=Release -DINSTALL_UDEV_RULES=OFF -DDETACH_KERNEL_DRIVER=ON
+        make -j"$(nproc)"
+        make install
+        ldconfig
+      args:
+        chdir: /usr/local/src/rtl-sdr-blog
+        executable: /bin/bash
+      when: not ansible_check_mode
+      notify: Restart rtl_tcp
+
+    - name: Record the installed commit
+      ansible.builtin.copy:
+        content: "{{ rtl_sdr_blog_commit }}\n"
+        dest: /usr/local/share/rtl-sdr-blog.version
+        mode: "0644"
+
+- name: rtlsdr user
+  ansible.builtin.user:
+    name: rtlsdr
+    system: true
+    shell: /usr/sbin/nologin
+    create_home: false
+
+- name: /etc/systemd/system/rtl_tcp.service
+  ansible.builtin.template:
+    src: rtl_tcp.service.j2
+    dest: /etc/systemd/system/rtl_tcp.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart rtl_tcp
+
+- name: /etc/nftables.conf
+  ansible.builtin.template:
+    src: nftables.conf.j2
+    dest: /etc/nftables.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload nftables
+
+- name: nftables is enabled and running
+  ansible.builtin.systemd_service:
+    name: nftables
+    enabled: true
+    state: started
+
+- name: rtl_tcp is enabled and running
+  ansible.builtin.systemd_service:
+    name: rtl_tcp
+    enabled: true
+    state: started

@@ -1,0 +1,5 @@
+- name: Reload udev rules for RTL-SDR
+  ansible.builtin.shell: |
+    udevadm control --reload
+    udevadm trigger --subsystem-match=usb --attr-match=idVendor=0bda --attr-match=idProduct=2838
+  changed_when: true

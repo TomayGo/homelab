@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: ghcr-pull
+    namespace: jr-radio
+type: kubernetes.io/dockerconfigjson
+stringData:
+    .dockerconfigjson: ENC[AES256_GCM,data:6cV/nA3FmlhRNNNc3m7lLRyX1vuEIRkvhHid3bVBMreKCkzWYE7e01xZARq49dHCAv4T7U8QOfrtDWJ+G/5mAM5FbaLtjy0+uo4MW+kKqh/7Mggl6lpN+4W4ShpkH+pKQigBdnQO7VlywjLn9Wjb86u3I6/fBnvLnfMHIgFLr/eBPxw6eANkCn+KCuExd+/nbcO8v3KeA77INwQVnydcd+bm0xT1CFW4ZDaqN6tWQM55kiI=,iv:7X36oB3juyRvcGbQogXw0+IsctBVs7mX2OnU9yqcxyU=,tag:7ztj9tQ5vJOU+m4oTzXTAg==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBqV2dUTkkyZ25rVzdTK3JT
+            Z3M3Y1crSDZ2SEhvSTFIaUFKNis5YjhwZG1NCmFQWmQ5bEJjdDUxaFpYK3hZb0Fl
+            YU1pQ1BxTDczU1Y1dWtJY0dMWjVvSTgKLS0tIFVEZzEwdUxwMUZtU2ZXSXpSRDFt
+            UHl5Y3VoSGVsOFQwWWhtYjZXRS9RUmMKNo/zmKp3vc5G77w5eosjyXz/L8Vg0Z6A
+            dYa74cp9D4799STgt3TJST05osctHCAg82zqhmkyqfNmVza03m4JHw==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-17T12:06:31Z"
+    mac: ENC[AES256_GCM,data:PQIJX+5nAXnX5WB4znN6loTVO0X3NXcyov3PhKGM57APhnSprYgra8sPMHoswbRCzqbqE3jv/Z5sDQUD6550KawpPpcfeyUSqJp79Apwp/MpsI/B/TlpsoEAPgw5TvW8nakRzBYV+RwZU2Z0ywn+j8PkqJ9ZEglYeLok7QM3io8=,iv:WfMVHSEWzirWnaiFOHtwMTDwP7WG5yZ3OGkLvZmxrUg=,tag:ngD+PK3kcUAc0N8w4th4Og==,type:str]
+    version: 3.13.3

@@ -65,3 +65,17 @@ guests:
     numa: 0
     boot: order=scsi0;net0
     net0: virtio=BC:24:11:82:FE:34,bridge=vmbr0
+# RTL-SDR の rtl_tcp（docs/manual-ops.md の「RTL-SDR」）。USB の cgroup と bind mount は手で管理する
+- vmid: 104
+  node: pve-1
+  type: lxc
+  config:
+    hostname: sdr
+    cores: 2
+    memory: 512
+    swap: 0
+    onboot: 1
+    features: nesting=1
+    nameserver: 192.168.1.92
+    net0: name=eth0,bridge=vmbr0,gw=192.168.1.1,hwaddr=BC:24:11:86:21:17,ip=192.168.1.86/24,type=veth
+    ostype: debian

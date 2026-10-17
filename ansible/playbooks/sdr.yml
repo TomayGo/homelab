@@ -1,0 +1,13 @@
+# RTL-SDR（JR 列車無線の受信）。PVE ホスト側の USB の準備と、LXC 104 sdr の rtl_tcp
+# 受信アプリは k8s の jr-radio（k8s/apps/jr-radio/）。LXC の cgroup と bind mount は docs/manual-ops.md
+- name: PVE host with the RTL-SDR dongle
+  hosts: sdr_usb_hosts
+  gather_facts: false
+  roles:
+    - rtlsdr_usb_host
+
+- name: rtl_tcp server (LXC 104)
+  hosts: sdr
+  gather_facts: false
+  roles:
+    - rtl_sdr_blog

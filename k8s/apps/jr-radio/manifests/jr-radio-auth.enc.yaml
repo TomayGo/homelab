@@ -1,0 +1,25 @@
+# jr-radio の Basic 認証。パスワードは sops -d で見る
+apiVersion: v1
+kind: Secret
+metadata:
+    name: jr-radio-auth
+    namespace: jr-radio
+type: Opaque
+stringData:
+    JRW_AUTH_USER: ENC[AES256_GCM,data:G7Hmbi0=,iv:cUWMGtc3Y1njrrpch15PQ4jZu2LYLdmlYj98kUA6cDc=,tag:1L4KN7cef1QMt8t9F3kHcg==,type:str]
+    JRW_AUTH_PASSWORD: ENC[AES256_GCM,data:0Oj7Tyi56N1RA/CE9Ucg3q3MALWBHYO7,iv:NKkjwsJ1k6XzmXnLYzy0jtvtmAVqHqnHJnIuORR7NWE=,tag:fzn9zKSKj3lE/MFdttr73A==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSBtWDdUSll1SW02dTB1a3g3
+            RkpDR3VzR21sVXI0TUZFUjdmUjlURWlMMmdrCnVNeDVtRXJSZnBGMFNUam5WR0Z0
+            TE5OZEZCVmROUEVGWmQydmdPTklnYXcKLS0tIG1ITnQ1Y0xqWGtiNTdZM2t4M2p1
+            cjlYL2I4ZnN5eURpbGFrVGR3N3M1UzAK5z55SP236i4J7xvSncgLJg1rsUKNF6Uk
+            WdGy34n7f1QKPm5OoDcAAbxc0+Ac0bfmcje0AltVx0REEUdcWqA7OA==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-10-17T12:06:31Z"
+    mac: ENC[AES256_GCM,data:rKuzaVXUFV/KBO5J6v4BzBk/PGKrGymgs77s0xBiAudmBdWiCmm1JUimOxe20Vw/GgIQy7bnYuUx16dgbdbY5F++Os0QzIJhEH/LlnIUO7Ic7cEa24MNhpr/1ZjV+dcpJdBefoA2Ghi1lKP/GD/iZuFtlT/sNWL7IoBbMPVSaOg=,iv:fQ2Rd+197ozTMofh9uJYjIrinJLrbcBLlvopxA1iS5g=,tag:cMIf5zC0fIPEP8e+spSmAw==,type:str]
+    version: 3.13.3
