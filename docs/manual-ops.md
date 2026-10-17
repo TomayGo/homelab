@@ -64,20 +64,26 @@ pvesh create /cluster/backup --id backup-every3d --schedule '*-*-1/3 10:00' \
 
 ### RTL-SDR（LXC 104 sdr）
 
-JR在来線デジタル列車無線の受信用。RTL-SDR Blog V4L（USB `0bda:2838`）を挿したPVEホストでLXC 104がrtl_tcpを動かし、k8sの`jr-radio`（`k8s/apps/jr-radio/`、http://192.168.1.94/）がそこへ接続する。
+JR在来線デジタル列車無線の受信用。RTL-SDR Blog V4L（USB `0bda:2838`）をpve-2に挿し、pve-2上のLXC 104がrtl_tcpを動かす。k8sの`jr-radio`（`k8s/apps/jr-radio/`、http://192.168.1.94/）が、そこへ接続する。
 
+- pve-2に挿す理由：pve-1のUSB-Aポートは、すべてap（VM 103）に渡したコントローラー（c6:00.3/.4）につながっている。pve-1自身のコントローラー（c8:00.3/.4）はUSB4のポートで、TBメッシュに使っている。pve-1に挿すと、apの中でDVBドライバに掴まれる（2026-10-17に確認）
 - LXC 104のLAN IPは192.168.1.86（固定、MAC `BC:24:11:86:21:17`）。HGWでもこの組み合わせを予約する。jr-radioはIPアドレスでしか接続先を受け付けない
-- ホスト側（ブラックリストとudevルール）と、LXCの中（rtl-sdr-blogのビルド、rtl_tcp、nftables）は`ansible/playbooks/sdr.yml`。ドングルを挿すホストは、インベントリの`sdr_usb_hosts`に書く
-- LXCの設定のうち、次の2行はAPIトークンでは書けないので手で足す。`/etc/pve/lxc/104.conf`の末尾に追記してから、`pct reboot 104`
+- ホスト側（ブラックリストとudevルール）と、LXCの中（rtl-sdr-blogのビルド、rtl_tcp、前段の中継、nftables）は`ansible/playbooks/sdr.yml`が扱う。ドングルを挿すホストは、インベントリの`sdr_usb_hosts`に書く
+- rtl_tcpは`127.0.0.1:1241`で待つ。外向きの`192.168.1.86:1240`は中継（`rtl_tcp_relay.py`）が受ける。rtl_tcpは、前のクライアントの後始末が済むまで次の接続をacceptしない。切断の直後につなぎ直すと、ヘッダーが届くまで3秒を超えることがあり、jr-radioはヘッダーを3秒しか待たない。中継が前回のヘッダーをすぐ返すことで、これを避けている（中継なしでは10回中1回失敗、中継ありでは20回中20回成功）
+- LXCの設定のうち、次の2行はAPIトークンでは書けないので、手で足す。`/etc/pve/lxc/104.conf`の末尾に追記してから、`pct reboot 104`を実行する
 
   ```
   lxc.cgroup2.devices.allow: c 189:* rwm
   lxc.mount.entry: /dev/bus/usb dev/bus/usb none bind,optional,create=dir
   ```
 
-  `/dev/bus/usb`をまるごとbindするので、挿し直してデバイス番号が変わってもLXCの設定は変えなくてよい
-- ドングルを別のホストに移すときは、`sdr_usb_hosts`を書き換えてplaybookを流し、`pct migrate 104 <ホスト> --restart`で移す（rootfsはceph-pool）
-- 確認：LXCの中で`systemctl stop rtl_tcp && rtl_test -t`が「RTL-SDR Blog V4 Lite Detected」を出すこと。終わったら`systemctl start rtl_tcp`
+  `/dev/bus/usb`をまるごとbindするので、挿し直してデバイス番号が変わっても、LXCの設定は変えなくてよい
+- ドングルを別のホストに移すときは、次の順に進める
+  1. `sdr_usb_hosts`を書き換えて、playbookを流す
+  2. ドライバがすでに掴んでいたら`modprobe -r rtl2832_sdr dvb_usb_rtl28xxu rtl2832`で外す
+  3. `pct migrate 104 <ホスト> --restart`で移す（rootfsはceph-poolなので数秒で終わる）
+  4. 元のホストの`/etc/modprobe.d/blacklist-rtl28xxu.conf`と`/etc/udev/rules.d/60-rtl-sdr-lxc.rules`を消す
+- 確認：LXCの中で`systemctl stop rtl_tcp && rtl_test -t`を実行し、「RTL-SDR Blog V4 Lite Detected」が出ること。終わったら`systemctl start rtl_tcp`を実行する
 - Debianの`librtlsdr`/`rtl-sdr`パッケージはV4Lに対応していない（信号が来ない）。入れない
 - rtl_tcpには認証がなく、同時に1クライアントしかつながらない。LXCのnftablesで、k8sノード（.82〜.84）とpve-1以外からの接続を落としている（受信内容を外に出さないため。電波法59条）
 

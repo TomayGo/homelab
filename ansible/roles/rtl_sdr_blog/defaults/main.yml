@@ -3,9 +3,11 @@
 rtl_sdr_blog_version: V1.4.0
 rtl_sdr_blog_commit: aed0ea19f3a273370a13c9009b96313c75d54c7b
 
-# rtl_tcp の待受。k8s の jr-radio がここへ接続する（アプリは IP アドレスしか受け付けない）
+# 外向きの待受（前段の中継 rtl_tcp_relay）。k8s の jr-radio がここへ接続する（アプリは IP アドレスしか受け付けない）
 rtl_tcp_address: 192.168.1.86
 rtl_tcp_port: 1240
+# rtl_tcp 本体はループバックだけで待つ。中継が理由（files/rtl_tcp_relay.py の先頭）
+rtl_tcp_backend_port: 1241
 
 # rtl_tcp に接続してよい送信元。k8s の Pod は Talos ノードの LAN アドレスで出てくる。pve-1 は確認用
 rtl_tcp_allowed_sources:

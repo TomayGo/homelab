@@ -67,7 +67,7 @@ guests:
     net0: virtio=BC:24:11:82:FE:34,bridge=vmbr0
 # RTL-SDR の rtl_tcp（docs/manual-ops.md の「RTL-SDR」）。USB の cgroup と bind mount は手で管理する
 - vmid: 104
-  node: pve-1
+  node: pve-2
   type: lxc
   config:
     hostname: sdr

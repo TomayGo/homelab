@@ -1,0 +1,20 @@
+# {{ ansible_managed }}
+# rtl_tcp（127.0.0.1:{{ rtl_tcp_backend_port }}）の前段。前回のヘッダーをすぐ返し、再接続でヘッダー待ちの 3 秒を超えないようにする
+[Unit]
+Description=rtl_tcp relay ({{ rtl_tcp_address }}:{{ rtl_tcp_port }} -> 127.0.0.1:{{ rtl_tcp_backend_port }})
+After=network-online.target rtl_tcp.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=true
+ExecStart=/usr/bin/python3 -I /usr/local/bin/rtl_tcp_relay.py {{ rtl_tcp_address }} {{ rtl_tcp_port }} 127.0.0.1 {{ rtl_tcp_backend_port }}
+Restart=always
+RestartSec=2
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

@@ -1,6 +1,6 @@
 - name: Build dependencies
   ansible.builtin.apt:
-    name: [git, cmake, build-essential, pkg-config, libusb-1.0-0-dev, usbutils, nftables]
+    name: [git, cmake, build-essential, pkg-config, libusb-1.0-0-dev, usbutils, nftables, python3]
     state: present
 
 - name: Installed rtl-sdr-blog version
@@ -57,6 +57,24 @@
     mode: "0644"
   notify: Restart rtl_tcp
 
+- name: /usr/local/bin/rtl_tcp_relay.py
+  ansible.builtin.copy:
+    src: rtl_tcp_relay.py
+    dest: /usr/local/bin/rtl_tcp_relay.py
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart rtl_tcp_relay
+
+- name: /etc/systemd/system/rtl_tcp_relay.service
+  ansible.builtin.template:
+    src: rtl_tcp_relay.service.j2
+    dest: /etc/systemd/system/rtl_tcp_relay.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart rtl_tcp_relay
+
 - name: /etc/nftables.conf
   ansible.builtin.template:
     src: nftables.conf.j2
@@ -75,5 +93,11 @@
 - name: rtl_tcp is enabled and running
   ansible.builtin.systemd_service:
     name: rtl_tcp
+    enabled: true
+    state: started
+
+- name: rtl_tcp_relay is enabled and running
+  ansible.builtin.systemd_service:
+    name: rtl_tcp_relay
     enabled: true
     state: started
