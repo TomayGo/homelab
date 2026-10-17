@@ -86,7 +86,7 @@ JR在来線デジタル列車無線の受信用。RTL-SDR Blog V4L（USB `0bda:2
 - 確認：LXCの中で`systemctl stop rtl_tcp && rtl_test -t`を実行し、「RTL-SDR Blog V4 Lite Detected」が出ること。終わったら`systemctl start rtl_tcp`を実行する
 - Debianの`librtlsdr`/`rtl-sdr`パッケージはV4Lに対応していない（信号が来ない）。入れない
 - jr-radioは、Podの起動時に保存済みの設定（`/data/config/settings.json`）で受信と録音を自動で始める（`JRW_AUTOSTART=1`）。rtl_tcpやLXCが再起動しても、約25秒で戻る。画面で「停止」を押したときだけは、次の「受信開始」まで止まったままになる
-- 録音は、通話ごとのWAVが確定したところで、jr-radioが1分ごとにOgg Opus（16 kbps、約1/8）に変換してWAVを消す。再生は受信画面の「録音を聴く」（`recordings.html`）から。PVCの中身を外へ持ち出さない（電波法59条）
+- 録音は、通話ごとのWAVが確定したところで、jr-radioが1分ごとにOgg Opus（16 kbps、約1/8）に変換してWAVを消す。再生は受信画面の「録音を聴く」（`recordings.html`）から。同じページの「データ波」タブで、録音に残したデータ電文（`data-messages.jsonl`）をセッションをまたいで遡れる。PVCの中身を外へ持ち出さない（電波法59条）
 - rtl_tcpは、クライアントがつながっている間はSIGTERMで終わらない。そのため、ユニットの`TimeoutStopSec`を5秒にしてある（既定のままだと、`systemctl restart`に90秒かかる）
 - rtl_tcpには認証がなく、同時に1クライアントしかつながらない。LXCのnftablesで、k8sノード（.82〜.84）とpve-1以外からの接続を落としている（受信内容を外に出さないため。電波法59条）
 
