@@ -13,6 +13,8 @@ Group=rtlsdr
 ExecStart=/usr/local/bin/rtl_tcp -a 127.0.0.1 -p {{ rtl_tcp_backend_port }}
 Restart=always
 RestartSec=5
+# クライアントがつながっている間は SIGTERM で終わらない（"Signal caught" を出して接続を待ち直す）。既定の 90 秒待たずに SIGKILL する
+TimeoutStopSec=5
 NoNewPrivileges=true
 ProtectSystem=strict
 ProtectHome=true
