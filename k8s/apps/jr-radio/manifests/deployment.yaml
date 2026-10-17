@@ -32,13 +32,16 @@ spec:
           type: RuntimeDefault
       containers:
         - name: jr-radio
-          image: ghcr.io/tomaygo/jr-radio-web:sha-5c7c774
+          image: ghcr.io/tomaygo/jr-radio-web:sha-9adfc28
           ports:
             - name: http
               containerPort: 8080
           env:
             - name: JRW_AUTOSTART
               value: "1"
+            # 確定した通話の WAV を、1 分ごとに Ogg Opus（16 kbps）にして WAV を消す（約 1/8）
+            - name: JRW_OPUS_BITRATE
+              value: "16000"
             # 設定ファイル（/data/config/settings.json）がまだ無いときの初期値。画面で変えた値はそちらに残る
             - name: JRW_DEFAULT_HOST
               value: 192.168.1.86
