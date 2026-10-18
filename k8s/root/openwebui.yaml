@@ -1,4 +1,3 @@
-# 取り込みが終わるまで syncPolicy.automated は書かない（手順書 1-4）
 # lmstudio/strata の externalName は Tailscale operator が placeholder から書き換えるので比較しない
 apiVersion: argoproj.io/v1alpha1
 kind: Application
@@ -15,6 +14,9 @@ spec:
     targetRevision: main
     path: k8s/apps/openwebui/manifests
   syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
     syncOptions:
     - ServerSideApply=true
     - RespectIgnoreDifferences=true

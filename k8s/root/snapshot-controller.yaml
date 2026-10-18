@@ -14,5 +14,8 @@ spec:
     targetRevision: main
     path: k8s/apps/snapshot-controller/manifests
   syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
     syncOptions:
     - ServerSideApply=true
