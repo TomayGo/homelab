@@ -9,6 +9,10 @@ Wants=network-online.target
 Type=simple
 DynamicUser=true
 ExecStart=/usr/bin/python3 -I /usr/local/bin/rtl_tcp_relay.py {{ rtl_tcp_address }} {{ rtl_tcp_port }} 127.0.0.1 {{ rtl_tcp_backend_port }}
+# IQ の保存先（SIGUSR1 で開始。files/rtl_tcp_relay.py の先頭）。実体は /var/lib/private/rtl_tcp_relay
+StateDirectory=rtl_tcp_relay
+StateDirectoryMode=0700
+Environment=CAPTURE_SECONDS={{ rtl_tcp_relay_capture_seconds }}
 Restart=always
 RestartSec=2
 NoNewPrivileges=true
