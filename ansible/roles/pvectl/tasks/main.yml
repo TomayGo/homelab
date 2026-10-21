@@ -1,0 +1,37 @@
+# ソースは TomayGo/pvectl。タグを push すると GitHub Actions がリリースにバイナリと SHA256SUMS を載せる
+- name: Installed pvectl version
+  ansible.builtin.command: /usr/local/bin/pvectl --version
+  register: pvectl_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Install pvectl {{ pvectl_version }}
+  when: pvectl_installed.stdout != "pvectl version " + pvectl_version
+  block:
+    # rolling の引き継ぎは peer の --version が同じでないと断るので、実行中に入れ替えない
+    - name: No pvectl run is in progress
+      ansible.builtin.stat:
+        path: /etc/pve/pvectl/maintenance.lock
+      register: pvectl_lock
+
+    - name: Refuse to replace pvectl during maintenance
+      ansible.builtin.fail:
+        msg: "/etc/pve/pvectl/maintenance.lock があるので入れ替えない（pvectl status で確認）"
+      when: pvectl_lock.stat.exists
+
+    - name: Download pvectl {{ pvectl_version }}
+      ansible.builtin.get_url:
+        url: "https://github.com/TomayGo/pvectl/releases/download/v{{ pvectl_version }}/pvectl"
+        checksum: "sha256:https://github.com/TomayGo/pvectl/releases/download/v{{ pvectl_version }}/SHA256SUMS"
+        dest: /usr/local/bin/pvectl
+        owner: root
+        group: root
+        mode: "0755"
+        force: true
+
+# 補完スクリプトはバイナリの __complete を呼ぶだけなので、バージョンが変わっても作り直さなくてよい
+- name: bash completion for pvectl
+  ansible.builtin.shell: /usr/local/bin/pvectl completion bash > /usr/share/bash-completion/completions/pvectl
+  args:
+    creates: /usr/share/bash-completion/completions/pvectl

@@ -20,13 +20,15 @@
 | node_exporter | バイナリ（v1.12.1。バージョンが違うときだけ入れ直す）、unit | 再起動 |
 | frr_exporter | バイナリ（v1.12.0）、unit | 再起動 |
 | pve_exporter | `/opt/pve-exporter`のvenv（prometheus-pve-exporter 3.10.1）、`pve.yml`（トークンはSOPS）、unit | 再起動 |
+| pvectl | `/usr/local/bin/pvectl`（TomayGo/pvectlのリリース。バージョンが違うときだけ入れ直す。`maintenance.lock`があれば失敗させる）、bash補完 | - |
 
 exporterのバージョンは、2026-10-09にRenovateのPRで更新したあとの値（取り込んだ時点では1.11.1、1.11.0、3.9.0）。
+
+pvectlは2026-10-21に追加した（それまでは`/root/pvectl`でビルドして手でコピーしていた）。新しいリリースが出るとRenovateがPRを作るので、マージしてから`pve.yml`を実行する。3台を同じバージョンに揃えないと、rollingの引き継ぎが動かない。
 
 - unitは3つとも、すでに`Restart=always`になっている（手順書の`Restart=on-failure`より強い設定）
 - 管理対象外にしたもの
   - `/etc/modprobe.d/vfio.conf`と`/etc/modules-load.d/vfio.conf`（pve-2、pve-3）：パススルー関係なので、手順書の方針どおり手で管理する
-  - `/usr/local/bin/pvectl`：別のリポジトリ（`/root/pvectl`）で管理している
   - `/etc/network/interfaces.d/sdn`：PVEのSDNが生成するファイル
   - `/etc/modprobe.d/zfs.conf`：管理していない
 

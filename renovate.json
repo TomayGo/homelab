@@ -64,6 +64,18 @@
       ],
       "depNameTemplate": "prometheus-pve-exporter",
       "datasourceTemplate": "pypi"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^ansible/roles/pvectl/defaults/main\\.yml$/"
+      ],
+      "matchStrings": [
+        "pvectl_version: \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "TomayGo/pvectl",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ],
   "packageRules": [

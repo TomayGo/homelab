@@ -12,3 +12,4 @@
     - node_exporter
     - frr_exporter
     - pve_exporter
+    - pvectl
