@@ -3,7 +3,8 @@ kind: Connector
 metadata:
   name: lan-router
 spec:
-  exitNode: false
+  # 3 台とも exit node としても広告する（lan-router-0/1/2 のどれかを選ぶ）
+  exitNode: true
   proxyClass: default
   hostnamePrefix: lan-router
   replicas: 3
