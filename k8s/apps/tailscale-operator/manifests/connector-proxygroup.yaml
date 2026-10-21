@@ -3,14 +3,28 @@ kind: Connector
 metadata:
   name: lan-router
 spec:
-  # 3 台とも exit node としても広告する（lan-router-0/1/2 のどれかを選ぶ）
-  exitNode: true
+  exitNode: false
   proxyClass: default
   hostnamePrefix: lan-router
   replicas: 3
   subnetRouter:
     advertiseRoutes:
     - 192.168.1.0/24
+  tags:
+  - tag:k8s
+---
+# exit node は tailnet 上で 1 台（exit）にする。レプリカを増やすと exit-0/1/2 のように別デバイスになり、
+# クライアントはその中から 1 台を選ぶだけで振り分けはされない。ノードが落ちたら Pod ごと別ノードに移り、
+# 状態 Secret が残るので同じ exit として戻る
+apiVersion: tailscale.com/v1alpha1
+kind: Connector
+metadata:
+  name: exit
+spec:
+  exitNode: true
+  hostname: exit
+  proxyClass: default
+  replicas: 1
   tags:
   - tag:k8s
 ---
