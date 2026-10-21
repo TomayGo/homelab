@@ -8,7 +8,7 @@
 - SOPSのファイル（`*.sops.yaml`）は、community.sopsのvarsプラグインで読み込む（`ansible.cfg`）
 - この環境では、ansibleの標準入出力がノンブロッキングだと起動しない。`</dev/null >log 2>&1`で実行する
 - `playbooks/collect-pve.yml`：管理対象のファイルを`collected/<host>/`に回収する（読み取りのみ）
-- `playbooks/pve.yml`：本体（`serial: 1`）
+- `playbooks/pve.yml`：本体（`serial: 1`）。ロールごとにロール名と同じタグを付けてあり、`--tags <ロール名>`で1つだけ流せる
 
 | role | 管理する内容 | handler |
 |---|---|---|
@@ -24,7 +24,12 @@
 
 exporterのバージョンは、2026-10-09にRenovateのPRで更新したあとの値（取り込んだ時点では1.11.1、1.11.0、3.9.0）。
 
-pvectlは2026-10-21に追加した（それまでは`/root/pvectl`でビルドして手でコピーしていた）。新しいリリースが出るとRenovateがPRを作るので、マージしてから`pve.yml`を実行する。3台を同じバージョンに揃えないと、rollingの引き継ぎが動かない。
+pvectlは2026-10-21に追加した（それまでは`/root/pvectl`でビルドして手でコピーしていた）。新しいリリースが出るとRenovateがPRを作る。マージしたら、pvectlのロールだけを流す。他のロール（ネットワークやFRR）まで3台に流さないため、`pve.yml`をタグなしで実行しない。
+
+1. `ansible-playbook playbooks/pve.yml --tags pvectl --check --diff`で、入れ替わるのが`/usr/local/bin/pvectl`だけなのを確かめる
+2. 戻せるようにするため、3台で`cp -p /usr/local/bin/pvectl /usr/local/bin/pvectl.<今の版>.bak`を取る（ロールは古いバイナリを残さない）
+3. `ansible-playbook playbooks/pve.yml --tags pvectl`で本適用する。`--limit`は付けず、3台を続けて入れ替える。3台を同じバージョンに揃えないと、rollingの引き継ぎが動かない
+4. 3台で`pvectl --version`が揃ったことを確かめる
 
 - unitは3つとも、すでに`Restart=always`になっている（手順書の`Restart=on-failure`より強い設定）
 - 管理対象外にしたもの
