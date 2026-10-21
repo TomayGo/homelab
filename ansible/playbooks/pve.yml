@@ -3,13 +3,14 @@
   hosts: pve
   gather_facts: false
   serial: 1
+  # ロールごとにロール名のタグを付けてある。1つだけ流すときは --tags <ロール名>（全部流すときはタグを付けない）
   roles:
-    - pve_network
-    - frr
-    - sysctl
-    - thunderbolt_net
-    - thunderbolt_irq
-    - node_exporter
-    - frr_exporter
-    - pve_exporter
-    - pvectl
+    - { role: pve_network, tags: [pve_network] }
+    - { role: frr, tags: [frr] }
+    - { role: sysctl, tags: [sysctl] }
+    - { role: thunderbolt_net, tags: [thunderbolt_net] }
+    - { role: thunderbolt_irq, tags: [thunderbolt_irq] }
+    - { role: node_exporter, tags: [node_exporter] }
+    - { role: frr_exporter, tags: [frr_exporter] }
+    - { role: pve_exporter, tags: [pve_exporter] }
+    - { role: pvectl, tags: [pvectl] }
