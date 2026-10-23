@@ -32,7 +32,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: jr-radio
-          image: ghcr.io/tomaygo/jr-radio-web:sha-cd10c1f
+          image: ghcr.io/tomaygo/jr-radio-web:sha-38b9d7f
           ports:
             - name: http
               containerPort: 8080
@@ -51,8 +51,10 @@ spec:
               value: east
             - name: JRW_DEFAULT_CENTER_MHZ
               value: "352.603125"
+            # 2026-10-23 から 2.4 MS/s（約 351.6〜353.6 MHz）。スペクトルのページで周りの帯域を見るため。
+            # 復号は取得スレッドで 1 回だけ 240 kS/s に間引いてから（jr-radio-web 38b9d7f）なので、チャンネル側の負荷と挙動は 240 k のときと同じ
             - name: JRW_DEFAULT_RATE
-              value: "240000"
+              value: "2400000"
             # 2026-10-17 の掃引（pve-2 の窓際、2 巡）で決めた。25.4 → 40.2 で東北本線 D1 音声の同期率が 0.87 → 0.90、
             # 仙石線はどの手動ゲインでも 1.00 で、42.1（−10 dBFS）でも飽和しない。40.2 は入力 −12.7 dBFS で余裕を残す値
             # 自動ゲインでは ADC が飽和し（+0.5 dBFS）、東北本線とデータ波が落ちる
