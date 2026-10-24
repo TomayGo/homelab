@@ -32,7 +32,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: jr-radio
-          image: ghcr.io/tomaygo/jr-radio-web:sha-c1d4fa7
+          image: ghcr.io/tomaygo/jr-radio-web:sha-2f9823e
           ports:
             - name: http
               containerPort: 8080
@@ -65,6 +65,10 @@ spec:
             # 残留の +200 Hz 程度はアプリが追従する
             - name: JRW_DEFAULT_PPM
               value: "0"
+            # 復号できた送信も IQ を残す波（/data/transmissions）。東北線・仙石線の第1波・第2波（352.56875 はプリセット名
+            # 「D6 音声第1波」だが東北本線の第2波）。ほかの波は復号できなかった送信だけ。pve-1 の transmissions.py が集めて検証する
+            - name: JRW_KEEP_DECODED_HZ
+              value: "352556250,352568750,352575000,352593750,352618750"
             - name: TZ
               value: Asia/Tokyo
           envFrom:
