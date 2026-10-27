@@ -442,7 +442,7 @@ prometheus:
               storage: 20Gi
           storageClassName: ceph-rbd
     thanos:
-      image: quay.io/thanos/thanos:v0.42.4
+      image: quay.io/thanos/thanos:v0.42.5
       resources:
         requests:
           cpu: 10m
