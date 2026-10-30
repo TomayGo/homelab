@@ -40,20 +40,24 @@ additionalPrometheusRulesMap:
         for: 30s
         labels:
           severity: warning
+      # pve-1 は VM の固定割り当て（mc 12G + talos-cp-1 8G + ap 2G）と ceph-osd で平常時 84〜86% になる。
+      # 85% / 30s だと境界を行き来して鳴りっぱなしになるので、warning は 90% を 10 分、
+      # critical は MemAvailable が 1.5G 程度（95%）まで減ったときにする。keep_firing_for で境界の往復を抑える
       - alert: HighMemoryUsage
         annotations:
           summary: '{{ $labels.node }} memory usage {{ $value | printf "%.1f" }}%'
         expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) *
-          100 > 90
-        for: 30s
+          100 > 95
+        for: 2m
         labels:
           severity: critical
       - alert: HighMemoryUsageWarning
         annotations:
           summary: '{{ $labels.node }} memory usage {{ $value | printf "%.1f" }}%'
         expr: (1 - node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) *
-          100 > 85
-        for: 30s
+          100 > 90
+        for: 10m
+        keep_firing_for: 10m
         labels:
           severity: warning
       - alert: DiskSpaceLow
