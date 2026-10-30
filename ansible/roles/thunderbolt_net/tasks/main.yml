@@ -53,3 +53,35 @@
   ansible.builtin.systemd_service:
     name: thunderbolt-ecmp
     enabled: true
+
+# NHI が wedge したときのイベントストーム (カーネルメモリリーク) を検知して unbind する。経緯はスクリプト冒頭
+- name: /usr/local/bin/tb-storm-watchdog.sh
+  ansible.builtin.copy:
+    src: tb-storm-watchdog.sh
+    dest: /usr/local/bin/tb-storm-watchdog.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: /etc/systemd/system/tb-storm-watchdog.{service,timer}
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - tb-storm-watchdog.service
+    - tb-storm-watchdog.timer
+  notify: Reload systemd
+
+- name: Flush handlers so the new timer unit is known before enabling it
+  ansible.builtin.meta: flush_handlers
+
+# check mode では unit がまだ置かれていないので失敗する
+- name: tb-storm-watchdog.timer is enabled and running
+  ansible.builtin.systemd_service:
+    name: tb-storm-watchdog.timer
+    enabled: true
+    state: started
+  ignore_errors: "{{ ansible_check_mode }}"

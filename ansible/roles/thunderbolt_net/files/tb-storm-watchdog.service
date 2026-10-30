@@ -1,0 +1,6 @@
+[Unit]
+Description=Unbind a wedged Thunderbolt NHI that floods hotplug events (kernel memory leak guard)
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/tb-storm-watchdog.sh
