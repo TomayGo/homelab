@@ -32,7 +32,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: jr-radio
-          image: ghcr.io/tomaygo/jr-radio-web:sha-2f9823e
+          image: ghcr.io/tomaygo/jr-radio-web:sha-12e8d22
           ports:
             - name: http
               containerPort: 8080
