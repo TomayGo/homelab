@@ -59,3 +59,18 @@ Renovate 44.147.0を`--platform=local --dry-run=extract`で実行し、次のと
 - [x] GitHubでRenovateアプリをインストールし、`TomayGo/homelab`を対象にする
 - [x] Dependency Dashboardを確認する
 - [ ] #13（kube-prometheus-stack v92。履歴の書き換えで#12が閉じたため、Renovateが作り直した）は、87.21.0の様子を見てから進める。87→92の移行の注意点は確認済みで、今のvaluesは影響を受けない
+
+## 同時に開く PR の数の制限（2026-11-04）
+
+- 2026-10-30 に Renovate の PR 11 件（うち 9 件が Argo CD のアプリに効くもの）を 8 分ほどのあいだにまとめてマージしたところ、Argo CD（auto-sync、selfHeal）が一斉に同期し、etcd が詰まった
+- それまでは Renovate の既定値（`prConcurrentLimit` 10、`prHourlyLimit` 2）のままで、10-30 と 11-04 はどちらも 10 件開いた状態で上限に当たっていた（#44 と #55 は、前の PR を閉じた直後に作られている）
+- `prConcurrentLimit` を 3 にした。3 件を 1 分のうちにマージした 10-21（netbox、kube-prometheus-stack、tailscale-operator）では、問題は記録されていない。上限に当たったぶんは Dependency Dashboard の「Rate-Limited」に並び、チェックを入れれば先に作らせることもできる
+- `prHourlyLimit` は既定の 2 のまま。PR を閉じると次の PR が 1 時間に 2 件ずつ出てくるので、マージも自然にずれる
+- まとめる（グループ化）のはやめた。基盤系は 1 つずつ入れる方針のため（`packageRules` の最初の規則）
+
+## backup-tools のタグの自動反映（2026-11-04）
+
+- `ghcr.io/tomaygo/backup-tools` は private で Renovate から見えないため、`k8s/apps/*/manifests/pvc-backup.yaml` のタグは手で上げていた。10-21 の CA バンドルの更新（と 10-23 の alpine 3.24.3）が本番に入らないまま残り、#56 で手で直した
+- `.github/workflows/backup-tools.yml` に `bump` ジョブを足した。main でビルドが成功すると、manifest の `ghcr.io/tomaygo/backup-tools:sha-…` を新しいタグに書き換え、ブランチ `auto/backup-tools-image` に push して PR を作る（PR がすでに開いていれば上書きして更新する）
+- PR を GITHUB_TOKEN で作るには、Settings → Actions → General の「Allow GitHub Actions to create and approve pull requests」をオンにする必要がある。オフのままだとジョブは失敗し、手で PR を作るための compare の URL をログに出す
+- GITHUB_TOKEN で作った PR や push では、他の workflow は走らない（GitHub の仕様）
