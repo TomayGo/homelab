@@ -199,6 +199,115 @@ additionalPrometheusRulesMap:
         for: 30s
         labels:
           severity: warning
+    # USB4 メッシュ（pve-1/2/3 の tb0/tb1、OSPF + ECMP）。Ceph の cluster_network と corosync ring1 が乗っている。
+    # 1 本切れても残り 2 本で迂回できるので warning、ホストが OSPF の隣接をすべて失ったら critical
+    - name: thunderbolt
+      rules:
+      # thunderbolt-net の netdev はピアが見えなくなると消える（DOWN ではなく存在しなくなる）ので、
+      # node_exporter が生きているのに tb0/tb1 の系列が無いことも断として扱う
+      - alert: ThunderboltMeshLinkDown
+        annotations:
+          summary: '{{ $labels.node }} の {{ $labels.device }} が down（または存在しない）'
+          description: OSPF の隣接と ip -br link を確認する。ピア側だけ NO-CARRIER のことがある（片側だけ見ない）
+        expr: |
+          (node_network_up{job="node", device=~"tb[01]"} == 0)
+          or
+          (label_replace(up{job="node"} == 1, "device", "tb0", "", "") unless on(node, device) node_network_up{device="tb0"})
+          or
+          (label_replace(up{job="node"} == 1, "device", "tb1", "", "") unless on(node, device) node_network_up{device="tb1"})
+        for: 2m
+        labels:
+          severity: warning
+      # link up でも通らない gray failure（7-22）やケーブルの差し違え（10-18）はこちらで拾う。値は Full の隣接数
+      - alert: OspfMeshNeighborsLow
+        annotations:
+          summary: '{{ $labels.node }} の OSPF Full ネイバーが {{ $value }}（2 未満）'
+          description: vtysh -c 'show ip ospf neighbor' で状態を見る。片方のリンクだけなら残りの経路で迂回している
+        expr: |
+          (
+            count by(node) (frr_ospf_neighbor_state{iface=~"tb[01]"} == 7)
+            or on(node)
+            sum by(node) (up{job="frr"} == 1) * 0
+          ) < 2
+        for: 2m
+        labels:
+          severity: warning
+      - alert: OspfMeshIsolated
+        annotations:
+          summary: '{{ $labels.node }} が USB4 メッシュから切れている（OSPF Full ネイバー 0）'
+          description: このホストの Ceph cluster_network と corosync ring1 が通らない。OSD down・PG degraded になる
+        expr: |
+          (
+            count by(node) (frr_ospf_neighbor_state{iface=~"tb[01]"} == 7)
+            or on(node)
+            sum by(node) (up{job="frr"} == 1) * 0
+          ) == 0
+        for: 1m
+        labels:
+          severity: critical
+      # 以下は tb-storm-watchdog.sh（ロール thunderbolt_net）が textfile collector に書く値
+      - alert: TbStormWatchdogUnbound
+        annotations:
+          summary: '{{ $labels.node }} で tb-storm-watchdog が NHI {{ $labels.pci }}（domain{{ $labels.domain }}）を unbind した'
+          description: '{{ $value | humanizeTimestamp }}（UTC）にイベントストームを止めるために外した。bind し直さず、ケーブルを確認してからホストを再起動する（再起動で消える）。journalctl -t tb-storm-watchdog'
+        expr: tb_storm_watchdog_unbind_timestamp_seconds > 0
+        for: 0m
+        labels:
+          severity: warning
+      # watchdog 以外（手動や watchdog 導入前）で外れたままの NHI。watchdog が外したものは上で出す
+      - alert: ThunderboltNhiUnbound
+        annotations:
+          summary: '{{ $labels.node }} の NHI {{ $labels.pci }} に driver が bind されていない'
+          description: そのホストの片方のメッシュリンクが使えない。bind し直さず（wedge した NHI への bind は kworker が D 状態で残る）、ケーブルを確認してから再起動する
+        expr: |
+          tb_nhi_bound == 0
+          unless on(node, pci) tb_storm_watchdog_unbind_timestamp_seconds
+        for: 5m
+        labels:
+          severity: warning
+      # unbind されないまま続くストーム。もう片方が unbind 済みで止めた、DRY_RUN、unbind 失敗のどれか。
+      # カーネルメモリが 2.5〜4 GB/日リークし続ける。50 は watchdog の THRESHOLD（5 秒あたり）
+      - alert: ThunderboltEventStorm
+        annotations:
+          summary: '{{ $labels.node }} の domain{{ $labels.domain }}（{{ $labels.pci }}）で TB イベントが 5 秒に {{ $value }} 件'
+          description: watchdog が unbind していない。journalctl -t tb-storm-watchdog で理由を見る。止めるには unbind か再起動
+        expr: tb_storm_watchdog_events > 50
+        for: 3m
+        labels:
+          severity: critical
+      # 書かれていないと上の 3 つが黙るので、それ自体を知らせる（timer は 1 分ごと）
+      - alert: TbStormWatchdogStale
+        annotations:
+          summary: '{{ $labels.node }} の tb-storm-watchdog が 10 分以上結果を書いていない'
+          description: systemctl status tb-storm-watchdog.service / journalctl -u tb-storm-watchdog を見る。この間はストームの検知と自動 unbind が止まっている
+        expr: |
+          (time() - node_textfile_mtime_seconds{file=~".*/tb-storm-watchdog\\.prom"} > 600)
+          or
+          (up{job="node"} == 1 unless on(node) node_textfile_mtime_seconds{file=~".*/tb-storm-watchdog\\.prom"})
+        for: 15m
+        labels:
+          severity: warning
+    # mgr の prometheus module は active な mgr だけが値を返し、instance がその mgr になる。
+    # mgr が切り替わってもアラートが続くように instance を落とす
+    - name: ceph
+      rules:
+      # 7-22 は USB4 の gray failure で cluster_network が詰まり、IO が 11 分止まった
+      - alert: CephOsdSlowOps
+        annotations:
+          summary: '{{ $labels.ceph_daemon }} に slow ops が {{ $value }} 件'
+          description: ceph health detail で詰まっている OSD を確かめる。メッシュ（tb0/tb1、OSPF）のアラートも見る
+        expr: max by(ceph_daemon) (ceph_daemon_health_metrics{type="SLOW_OPS", ceph_daemon=~"osd\\..*"}) > 0
+        for: 1m
+        labels:
+          severity: warning
+      - alert: CephOsdSlowOpsCritical
+        annotations:
+          summary: '{{ $labels.ceph_daemon }} の slow ops が 5 分続いている（{{ $value }} 件）'
+          description: その OSD を使う RBD（k8s の PVC、VM ディスク）の IO が止まっている可能性が高い。ceph health detail とメッシュの状態を見る
+        expr: max by(ceph_daemon) (ceph_daemon_health_metrics{type="SLOW_OPS", ceph_daemon=~"osd\\..*"}) > 0
+        for: 5m
+        labels:
+          severity: critical
 alertmanager:
   alertmanagerSpec:
     # 2 台を必ず別ノードに置く（既定の soft では同じノードに並ぶことがある）
