@@ -1,0 +1,7 @@
+# GEM12（pve-1/2/3）のファンは ITE IT8613E（Super I/O 0x2e）が回している。mainline の it87 は IT8613E に
+# 対応していないので、環境コントローラ（LDN 4）のレジスタを /dev/port から読んで textfile collector に書く
+superio_fan_base: "0x0a30"
+# ファン番号（IT8613E の FAN_TAC）と名前。fan2 は CPU 温度、fan3 は基板温度に合わせて回る（2026-11-05 に負荷で確認）
+superio_fan_fans:
+  cpu: 2
+  system: 3

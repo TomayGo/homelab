@@ -933,6 +933,84 @@
       "maxPerRow": 3
     },
     {
+      "type": "timeseries",
+      "title": "ファン回転数",
+      "id": 46,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P8D9ADF90DB2E3ECF"
+      },
+      "gridPos": {
+        "x": 8,
+        "y": 14,
+        "w": 16,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "rotrpm",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "transparent",
+                "value": 1
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisCenteredZero": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          },
+          "min": 0
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "min",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P8D9ADF90DB2E3ECF"
+          },
+          "expr": "superio_fan_rpm{node=~\"$host\"}",
+          "legendFormat": "{{node}} {{fan}}",
+          "refId": "A"
+        }
+      ],
+      "description": "ITE IT8613E の FAN_TAC を 15 秒ごとに読んだ値（Ansible ロール superio_fan）。cpu は CPU 温度、system は基板温度に合わせて回る。cpu が 0 rpm のまま 1 分で critical（CpuFanStalled）、system は 5 分で warning。"
+    },
+    {
       "type": "stat",
       "title": "稼働時間",
       "id": 15,

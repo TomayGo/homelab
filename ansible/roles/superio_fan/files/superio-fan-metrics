@@ -1,0 +1,64 @@
+#!/usr/bin/python3 -I
+# ITE IT8613E の環境コントローラからファン回転数と温度を読み、node_exporter の textfile collector に書く。
+# 読むだけで、ファンの設定は変えない。レジスタは index（base+5）に番号を書いて data（base+6）から読む
+import fcntl
+import os
+import sys
+
+# 設定は /etc/default/superio-fan-metrics（ロール superio_fan の defaults から作る）
+BASE = int(os.environ.get("SUPERIO_FAN_BASE", "0x0a30"), 0)
+# "cpu:2 system:3" = 名前:FAN_TAC の番号
+FANS = {k: int(v) for k, v in (x.split(":") for x in os.environ.get("SUPERIO_FAN_FANS", "cpu:2 system:3").split())}
+TEXTFILE = "/var/lib/node_exporter/textfile_collector/superio-fan.prom"
+# FAN_TAC のカウンタ（16 bit）: fan1-3 は 0x0d-0x0f / 0x18-0x1a、fan4-5 は 0x80/0x81、0x82/0x83
+TAC = {1: (0x0D, 0x18), 2: (0x0E, 0x19), 3: (0x0F, 0x1A), 4: (0x80, 0x81), 5: (0x82, 0x83)}
+VENDOR_REG, VENDOR_ITE = 0x58, 0x90
+
+
+def main():
+    lock = open("/run/lock/superio-fan-metrics.lock", "w")
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    fd = os.open("/dev/port", os.O_RDWR)
+
+    def reg(r):
+        os.lseek(fd, BASE + 5, 0)
+        os.write(fd, bytes([r]))
+        os.lseek(fd, BASE + 6, 0)
+        return os.read(fd, 1)[0]
+
+    lines = [
+        "# HELP superio_fan_up 1 if the IT8613E environment controller answered with the ITE vendor ID",
+        "# TYPE superio_fan_up gauge",
+    ]
+    ok = reg(VENDOR_REG) == VENDOR_ITE
+    lines.append(f"superio_fan_up {int(ok)}")
+    if ok:
+        lines += [
+            "# HELP superio_fan_rpm Fan speed from the IT8613E tachometer (0 = stalled)",
+            "# TYPE superio_fan_rpm gauge",
+        ]
+        for name, n in FANS.items():
+            lo, hi = TAC[n]
+            count = reg(lo) | reg(hi) << 8
+            # 0xffff はパルスが来ていない（停止）。0 は読めていない
+            if count == 0:
+                continue
+            rpm = 0 if count == 0xFFFF else 1350000 // (2 * count)
+            lines.append(f'superio_fan_rpm{{fan="{name}",tach="{n}"}} {rpm}')
+        lines += [
+            "# HELP superio_temp_celsius IT8613E temperature inputs (temp3 follows CPU Tctl, temp1 is the board)",
+            "# TYPE superio_temp_celsius gauge",
+        ]
+        for i, r in enumerate((0x29, 0x2A, 0x2B), start=1):
+            t = reg(r)
+            if t not in (0x80, 0xFF):
+                lines.append(f'superio_temp_celsius{{sensor="temp{i}"}} {t}')
+    tmp = f"{TEXTFILE}.{os.getpid()}"
+    with open(tmp, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.rename(tmp, TEXTFILE)
+    return 0 if ok else 1
+
+
+if __name__ == "__main__":
+    sys.exit(main())

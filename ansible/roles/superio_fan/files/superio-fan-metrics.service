@@ -1,0 +1,7 @@
+[Unit]
+Description=Export IT8613E fan speeds to the node_exporter textfile collector
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/default/superio-fan-metrics
+ExecStart=/usr/local/sbin/superio-fan-metrics

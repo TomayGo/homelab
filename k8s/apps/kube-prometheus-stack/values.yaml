@@ -32,6 +32,38 @@ additionalPrometheusRulesMap:
         for: 1m
         labels:
           severity: warning
+      # ファン回転数は ITE IT8613E を /dev/port から読んだ値（Ansible ロール superio_fan、15 秒ごと）。
+      # 平常時は cpu 950〜1600 rpm（全コア負荷で約 3150）、system 1650〜1900 rpm。0 はパルスが来ていない（停止）
+      - alert: CpuFanStalled
+        annotations:
+          summary: '{{ $labels.node }} の CPU ファンが止まっている（0 rpm）'
+          description: 'IT8613E の FAN_TAC{{ $labels.tach }} にパルスが来ていない。CPU 温度を見て、上がっていれば負荷を逃がす（pvectl で退避）。8845HS は 100°C でスロットリングする'
+        expr: superio_fan_rpm{fan="cpu"} == 0
+        for: 1m
+        labels:
+          severity: critical
+      - alert: SystemFanStalled
+        annotations:
+          summary: '{{ $labels.node }} のシステムファンが止まっている（0 rpm）'
+          description: 'IT8613E の FAN_TAC{{ $labels.tach }} にパルスが来ていない。NVMe と基板の温度が上がる'
+        expr: superio_fan_rpm{fan="system"} == 0
+        for: 5m
+        labels:
+          severity: warning
+      # 書かれていないと上の 2 つが黙るので、それ自体を知らせる
+      - alert: FanMetricsStale
+        annotations:
+          summary: '{{ $labels.node }} のファン回転数が 5 分以上更新されていない'
+          description: 'systemctl status superio-fan-metrics.timer / journalctl -u superio-fan-metrics を見る。superio_fan_up が 0 なら IT8613E が ITE の vendor ID を返していない'
+        expr: |
+          (time() - node_textfile_mtime_seconds{file=~".*/superio-fan\\.prom"} > 300)
+          or
+          (superio_fan_up == 0)
+          or
+          (up{job="node"} == 1 unless on(node) node_textfile_mtime_seconds{file=~".*/superio-fan\\.prom"})
+        for: 10m
+        labels:
+          severity: warning
       - alert: HighCpuUsage
         annotations:
           summary: '{{ $labels.node }} CPU usage {{ $value | printf "%.1f" }}%'
