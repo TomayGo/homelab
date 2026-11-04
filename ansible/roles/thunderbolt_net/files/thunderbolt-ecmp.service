@@ -1,5 +1,5 @@
 [Unit]
-Description=Thunderbolt ECMP Route Setup
+Description=Thunderbolt mesh setup (TB offloads; removes the old static ECMP)
 After=network.target thunderbolt-irq-affinity.service
 
 [Service]

@@ -45,13 +45,6 @@ auto dummy0
 iface dummy0 inet static
 	address {{ mesh_loopback }}/32
 	pre-up ip link add dummy0 type dummy 2>/dev/null || true
-	post-up ip rule add from {{ mesh_loopback }} lookup 100 prio 100 2>/dev/null || true
-	post-up ip rule add from {{ tb0_address.split('/')[0] }} lookup 100 prio 100 2>/dev/null || true
-	post-up ip rule add from {{ tb1_address.split('/')[0] }} lookup 100 prio 100 2>/dev/null || true
-{% for r in mesh_ecmp_routes %}
-	post-up ip route replace {{ r.dest }} table 100{% for n in r.nexthops %} nexthop via {{ n.via }} dev {{ n.dev }} weight 1{% endfor %}
-
-{% endfor %}
 
 auto vmbr9
 iface vmbr9 inet static
