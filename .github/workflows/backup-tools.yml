@@ -1,18 +1,31 @@
 name: backup-tools image
 
+# images/backup-tools/ をビルドして ghcr.io/tomaygo/backup-tools:sha-<short> に push し、
+# k8s/apps/*/manifests/ でこのイメージを使っている箇所のタグを書き換える PR を作る。
+# イメージは private なので Renovate からは見えない。
+
 on:
   push:
     branches: [main]
     paths: ["images/backup-tools/**", ".github/workflows/backup-tools.yml"]
   workflow_dispatch:
 
-permissions:
-  contents: read
-  packages: write
+# 古いコミットのビルドが新しいコミットのあとに終わって、タグを戻してしまわないように 1 本ずつ流す
+# （待っている run があるときに次の run が来ると、待っていたほうは取り消される。main の先端のほうが残る）
+concurrency:
+  group: backup-tools
+  cancel-in-progress: false
+
+permissions: {}
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    outputs:
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
       - uses: actions/checkout@v7
       - uses: docker/setup-buildx-action@v4
@@ -36,3 +49,104 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+      - id: tag
+        name: manifest に書く sha- タグを取り出す
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
+        run: |
+          set -euo pipefail
+          tag=$(printf '%s\n' "$TAGS" | grep -oE ':sha-[0-9a-f]+$' | head -n 1 | cut -c 2-)
+          if [ -z "$tag" ]; then
+            echo "::error::metadata-action の出力に sha- タグがありません: $TAGS"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+  bump:
+    # main のビルドだけ。push できたイメージのタグで manifest を書き換える
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # auto/backup-tools-image ブランチへの push
+      pull-requests: write # PR の作成と更新
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          # ビルドのあいだに main が進んでいても、その先端から書き換える
+          ref: main
+          fetch-depth: 0
+      - name: manifest のタグを書き換えて PR を作る
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.build.outputs.tag }}
+          OWNER: ${{ github.repository_owner }}
+          REPO: ${{ github.repository }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          BRANCH: auto/backup-tools-image
+        run: |
+          set -euo pipefail
+          image="ghcr.io/${OWNER,,}/backup-tools"
+          # 1 つのブランチと PR を使い回す。まだ PR がマージされていないうちに次のビルドが来たら、同じ PR を新しいタグで上書きする
+          git switch -C "$BRANCH"
+
+          mapfile -t files < <(git grep -lE "image: ${image}:sha-[0-9a-f]+" -- 'k8s/apps/*/manifests/*.yaml' || true)
+          if [ "${#files[@]}" -eq 0 ]; then
+            echo "::error::${image}:sha-… を使っている manifest が k8s/apps/*/manifests/ に見つかりません"
+            exit 1
+          fi
+
+          # main のほうがこのビルドより新しいコミットのタグを指していたら、戻さない
+          old=$(git grep -hoE "image: ${image}:sha-[0-9a-f]+" -- "${files[@]}" | sed -E 's/.*:sha-//' | sort -u)
+          for o in $old; do
+            if [ "${o}" != "${TAG#sha-}" ] && git merge-base --is-ancestor "$GITHUB_SHA" "$o" 2>/dev/null; then
+              echo "main はすでに新しいコミット ${o} のイメージを指しています。書き換えません"
+              exit 0
+            fi
+          done
+
+          sed -i -E "s#(image: ${image}:)sha-[0-9a-f]+#\1${TAG}#" "${files[@]}"
+          if git diff --quiet; then
+            echo "main はすでに ${TAG} です"
+            exit 0
+          fi
+          git diff --stat
+
+          subject=$(git log -1 --format=%s "$GITHUB_SHA")
+          title="backup-tools: ${TAG}（${subject}）"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit --quiet -a -m "$title" -m "${RUN_URL} でビルドしたイメージ ${image}:${TAG} に合わせる。"
+          git push --force origin "$BRANCH"
+
+          {
+            echo "\`images/backup-tools/\` を ${GITHUB_SHA:0:7} でビルドした \`${image}:${TAG}\` に、manifest のタグを合わせます。"
+            echo
+            echo "- ビルド: ${RUN_URL}"
+            echo "- 前のタグのコミットからの差分（images/backup-tools/ 以外の変更も含む）:"
+            for o in $old; do
+              [ "$o" = "${TAG#sha-}" ] && continue
+              echo "  - https://github.com/${REPO}/compare/${o}...${GITHUB_SHA:0:7}"
+            done
+            echo
+            echo "## 書き換えたファイル"
+            echo
+            for f in "${files[@]}"; do
+              echo "- \`$f\`（$(grep -cE "image: ${image}:" "$f") か所）"
+            done
+            echo
+            echo "マージすると、上のファイルを持つ Argo CD アプリがまとめて同期されます（変わるのは CronJob の image だけ）。"
+            echo
+            echo "この PR は \`backup-tools image\` workflow が GITHUB_TOKEN で作ったものなので、この PR に対して他の workflow は走りません。"
+            echo "次のビルドがあると、このブランチは新しいタグで上書きされます。"
+          } > "$RUNNER_TEMP/body.md"
+
+          pr=$(gh pr list --repo "$REPO" --head "$BRANCH" --state open --json number --jq '.[0].number // empty')
+          if [ -n "$pr" ]; then
+            gh pr edit "$pr" --repo "$REPO" --title "$title" --body-file "$RUNNER_TEMP/body.md"
+            echo "PR #$pr を ${TAG} に更新しました"
+          elif ! gh pr create --repo "$REPO" --base main --head "$BRANCH" --title "$title" --body-file "$RUNNER_TEMP/body.md"; then
+            # Settings → Actions → General の「Allow GitHub Actions to create and approve pull requests」がオフだと作れない
+            echo "::error::PR を作れませんでした。ブランチ ${BRANCH} は push 済みです。https://github.com/${REPO}/compare/main...${BRANCH}?expand=1 から手で PR を作ってください"
+            exit 1
+          fi
