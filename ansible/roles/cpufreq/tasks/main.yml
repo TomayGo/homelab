@@ -1,0 +1,24 @@
+- name: /usr/local/bin/cpufreq-epp.sh
+  ansible.builtin.template:
+    src: cpufreq-epp.sh.j2
+    dest: /usr/local/bin/cpufreq-epp.sh
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Rerun cpufreq-epp
+
+- name: /etc/systemd/system/cpufreq-epp.service
+  ansible.builtin.copy:
+    src: cpufreq-epp.service
+    dest: /etc/systemd/system/cpufreq-epp.service
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Rerun cpufreq-epp
+
+- name: cpufreq-epp.service is enabled
+  ansible.builtin.systemd_service:
+    name: cpufreq-epp
+    enabled: true
+  # 初回の --check では unit がまだ無いので失敗する
+  ignore_errors: "{{ ansible_check_mode }}"

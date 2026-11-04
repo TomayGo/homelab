@@ -17,6 +17,7 @@
 | sysctl | `/etc/sysctl.d/90-usb4-ecmp.conf` | `sysctl --system` |
 | thunderbolt_net | udevルール（85、99）、modules-load、`thunderbolt-ecmp.service`と`-setup.sh`、`thunderbolt-net-recover.sh` | udev reload、daemon-reload |
 | thunderbolt_irq | `thunderbolt-irq-affinity.sh`（PCIのバス番号に依存しない。データ用の割り込みを最大60秒待ち、4つ固定できなければ失敗する）、unit | 再実行 |
+| cpufreq | `cpufreq-epp.sh`、unit（起動時に全 CPU を governor `powersave`、EPP `balance_performance` にする。値は`defaults`） | 再実行 |
 | node_exporter | バイナリ（v1.12.1。バージョンが違うときだけ入れ直す）、unit | 再起動 |
 | frr_exporter | バイナリ（v1.12.0）、unit | 再起動 |
 | pve_exporter | `/opt/pve-exporter`のvenv（prometheus-pve-exporter 3.10.1）、`pve.yml`（トークンはSOPS）、unit | 再起動 |
@@ -87,3 +88,26 @@ pvectlは2026-10-21に追加した（それまでは`/root/pvectl`でビルド�
 
 - [x] 3台とも`--check --diff`で`changed=0`
 - [x] 管理対象外の項目（`/etc/pve`、Ceph、クラスタ参加、アップグレード）の手順が書かれている（`docs/manual-ops.md`）
+
+## CPU の EPP（2026-11-05 追加）
+
+Proxmox のカーネルは governor の既定が`performance`なので、amd-pstate-epp の EPP も`performance`に固定される。軽い負荷でもクロックが 3.4〜4.1GHz に張り付き、アイドル時のパッケージ電力（RAPL）は pve-1 29W、pve-2 16W、pve-3 27W あった。`cpufreq`ロールで governor を`powersave`、EPP を`balance_performance`にしている。
+
+pve-2 で4モードを2周ずつ測った結果（ベンチマークは`nice -n 19`）。
+
+- 全16スレッドで30秒回したときのスループットは、どのモードでも誤差の範囲（約62W の電力上限で頭打ちになる）
+- 300ms アイドルにしたあとで決まった量の処理を流したときの所要時間（p50）
+
+| 処理量（performance での時間） | performance | balance_performance | balance_power | power |
+|---|---|---|---|---|
+| 0.1ms | 106µs | 175µs | 172〜301µs | 301µs |
+| 1ms | 1.07ms | 1.66ms | 1.70ms | 1.7〜2.3ms |
+| 8ms | 8.3ms | 12.2ms | 16.9ms | 17〜18ms（p90 30ms） |
+| 80ms | 80.1ms | 83.9ms | 93.2ms | 170ms |
+| 8ms × 16スレッド同時 | 8.35ms | 12.1ms | 17.4ms | 17ms（p90 30ms） |
+
+- アイドル時のパッケージ電力（3台の合計）は、performance が約72W、balance_performance が約42W、balance_power が約35W
+
+balance_power のほうが 7W 少ないが、アイドル明けの遅れが +9〜13ms と balance_performance（+4ms）の倍以上になる。etcd と Ceph OSD は短い処理が細切れに来るので、balance_performance を選んだ。`power`は長い処理でもクロックが低いままなので使わない。
+
+その場で試すときは`for p in /sys/devices/system/cpu/cpufreq/policy*; do echo powersave > $p/scaling_governor; echo <EPP> > $p/energy_performance_preference; done`。governor が`performance`のままだと EPP は書けない。

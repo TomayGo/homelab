@@ -1,0 +1,3 @@
+# amd-pstate-epp の EPP。2026-11-05 に pve-2 で4モードを比べて決めた（docs/phase5.md）
+cpufreq_governor: powersave
+cpufreq_epp: balance_performance

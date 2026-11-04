@@ -1,0 +1,14 @@
+#!/bin/sh
+# {{ ansible_managed }}
+# 全 CPU の governor と EPP を設定する。EPP は governor が performance だと書けないので、governor を先に変える
+set -eu
+gov={{ cpufreq_governor }}
+epp={{ cpufreq_epp }}
+n=0
+for p in /sys/devices/system/cpu/cpufreq/policy*; do
+  echo "$gov" > "$p/scaling_governor"
+  echo "$epp" > "$p/energy_performance_preference"
+  n=$((n + 1))
+done
+[ "$n" -gt 0 ] || { echo "no cpufreq policy found" >&2; exit 1; }
+echo "set governor=$gov epp=$epp on $n policies"
