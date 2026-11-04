@@ -14,3 +14,4 @@
     - { role: frr_exporter, tags: [frr_exporter] }
     - { role: pve_exporter, tags: [pve_exporter] }
     - { role: pvectl, tags: [pvectl] }
+    - { role: superio_fan, tags: [superio_fan] }

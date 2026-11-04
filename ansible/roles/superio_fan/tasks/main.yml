@@ -1,0 +1,38 @@
+- name: /usr/local/sbin/superio-fan-metrics
+  ansible.builtin.copy:
+    src: superio-fan-metrics
+    dest: /usr/local/sbin/superio-fan-metrics
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: /etc/default/superio-fan-metrics
+  ansible.builtin.template:
+    src: superio-fan-metrics.default.j2
+    dest: /etc/default/superio-fan-metrics
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: superio-fan-metrics service and timer
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - superio-fan-metrics.service
+    - superio-fan-metrics.timer
+  notify: Reload systemd for superio-fan-metrics
+
+- name: Flush handlers before starting the timer
+  ansible.builtin.meta: flush_handlers
+
+- name: superio-fan-metrics.timer is enabled and running
+  ansible.builtin.systemd_service:
+    name: superio-fan-metrics.timer
+    enabled: true
+    state: started
+  # 初回の --check では unit がまだ無いので失敗する
+  ignore_errors: "{{ ansible_check_mode }}"

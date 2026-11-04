@@ -21,6 +21,7 @@
 | frr_exporter | バイナリ（v1.12.0）、unit | 再起動 |
 | pve_exporter | `/opt/pve-exporter`のvenv（prometheus-pve-exporter 3.10.1）、`pve.yml`（トークンはSOPS）、unit | 再起動 |
 | pvectl | `/usr/local/bin/pvectl`（TomayGo/pvectlのリリース。バージョンが違うときだけ入れ直す。`maintenance.lock`があれば失敗させる）、bash補完 | - |
+| superio_fan | `/usr/local/sbin/superio-fan-metrics`（ITE IT8613E のファン回転数と温度を textfile collector に書く）、`/etc/default/superio-fan-metrics`、service と 15 秒ごとの timer | daemon-reload |
 
 exporterのバージョンは、2026-10-09にRenovateのPRで更新したあとの値（取り込んだ時点では1.11.1、1.11.0、3.9.0）。
 
@@ -36,6 +37,21 @@ pvectlは2026-10-21に追加した（それまでは`/root/pvectl`でビルド�
   - `/etc/modprobe.d/vfio.conf`と`/etc/modules-load.d/vfio.conf`（pve-2、pve-3）：パススルー関係なので、手順書の方針どおり手で管理する
   - `/etc/network/interfaces.d/sdn`：PVEのSDNが生成するファイル
   - `/etc/modprobe.d/zfs.conf`：管理していない
+
+## ファン回転数（2026-11-05 追加）
+
+pve-1/2/3（AOOSTAR GEM12）のファンは、Super I/O の ITE IT8613E（ポート 0x2e、環境コントローラのベースは 0x0a30）が自分の温度カーブで回している。ACPI に EC もファンのデバイスもなく、hwmon には出てこない。mainline の `it87` は IT8613E に対応していない（`modprobe it87` は No such device）。
+
+DKMS の out-of-tree ドライバを入れるとカーネル更新のたびにビルドが走るので、`superio_fan`ロールのスクリプトで `/dev/port` からレジスタを読むだけにした（設定は書き換えない）。読む前に vendor ID（0x58 = 0x90）を確かめ、違えば `superio_fan_up 0` だけを書く。ACPI テーブルに 0x0a30 付近の OperationRegion は見当たらない。
+
+| メトリクス | 内容 |
+|---|---|
+| `superio_fan_rpm{fan="cpu",tach="2"}` | CPU ファン。CPU 温度に合わせて回る（アイドル 950〜1600 rpm、全コア負荷で約 3150 rpm） |
+| `superio_fan_rpm{fan="system",tach="3"}` | システムファン。基板温度（temp1）に合わせて 1650〜1900 rpm |
+| `superio_temp_celsius{sensor="temp1..3"}` | temp1/2 は基板、temp3 は CPU の Tctl とほぼ同じ値 |
+| `superio_fan_up` | vendor ID が読めたら 1 |
+
+回転数は `1350000 / (2 × カウンタ)`。カウンタが 0xffff ならパルスが来ていない（停止）として 0 rpm を出す。アラートは `CpuFanStalled`（1 分、critical）、`SystemFanStalled`（5 分、warning）、`FanMetricsStale`。
 
 ## `--check --diff`の結果
 
