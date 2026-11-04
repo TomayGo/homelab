@@ -1,0 +1,10 @@
+[Unit]
+Description=Set CPU frequency governor and EPP
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/cpufreq-epp.sh
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

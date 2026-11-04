@@ -10,6 +10,7 @@
     - { role: sysctl, tags: [sysctl] }
     - { role: thunderbolt_net, tags: [thunderbolt_net] }
     - { role: thunderbolt_irq, tags: [thunderbolt_irq] }
+    - { role: cpufreq, tags: [cpufreq] }
     - { role: node_exporter, tags: [node_exporter] }
     - { role: frr_exporter, tags: [frr_exporter] }
     - { role: pve_exporter, tags: [pve_exporter] }
