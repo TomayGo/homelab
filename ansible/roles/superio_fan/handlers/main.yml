@@ -1,3 +1,11 @@
 - name: Reload systemd for superio-fan-metrics
   ansible.builtin.systemd_service:
     daemon_reload: true
+
+# 止めるときに起動 PWM を MIN（BIOS の値）に戻し、起動し直すと移動平均を最初から取り直す
+- name: Restart superio-fan-control
+  ansible.builtin.systemd_service:
+    name: superio-fan-control.service
+    state: restarted
+  when: superio_fan_control_enabled
+  ignore_errors: "{{ ansible_check_mode }}"

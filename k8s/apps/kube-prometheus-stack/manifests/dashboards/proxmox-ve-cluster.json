@@ -943,7 +943,7 @@
       "gridPos": {
         "x": 8,
         "y": 14,
-        "w": 16,
+        "w": 8,
         "h": 8
       },
       "fieldConfig": {
@@ -1009,6 +1009,160 @@
         }
       ],
       "description": "ITE IT8613E の FAN_TAC を 15 秒ごとに読んだ値（Ansible ロール superio_fan）。cpu は CPU 温度、system は基板温度に合わせて回る。cpu が 0 rpm のまま 1 分で critical（CpuFanStalled）、system は 5 分で warning。"
+    },
+    {
+      "type": "timeseries",
+      "title": "CPU ファン制御（Tctl 5 分平均と起動 PWM）",
+      "id": 47,
+      "datasource": {
+        "type": "prometheus",
+        "uid": "P8D9ADF90DB2E3ECF"
+      },
+      "gridPos": {
+        "x": 16,
+        "y": 14,
+        "w": 8,
+        "h": 8
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "celsius",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              }
+            ]
+          },
+          "custom": {
+            "drawStyle": "line",
+            "lineWidth": 1,
+            "fillOpacity": 0,
+            "showPoints": "never",
+            "spanNulls": false,
+            "stacking": {
+              "mode": "none",
+              "group": "A"
+            },
+            "axisCenteredZero": false,
+            "thresholdsStyle": {
+              "mode": "off"
+            }
+          }
+        },
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": ".* 起動 PWM"
+            },
+            "properties": [
+              {
+                "id": "unit",
+                "value": "none"
+              },
+              {
+                "id": "custom.axisPlacement",
+                "value": "right"
+              },
+              {
+                "id": "custom.axisLabel",
+                "value": "起動 PWM（0〜255）"
+              },
+              {
+                "id": "min",
+                "value": 0
+              },
+              {
+                "id": "max",
+                "value": 255
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    10,
+                    10
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byRegexp",
+              "options": "目標"
+            },
+            "properties": [
+              {
+                "id": "color",
+                "value": {
+                  "mode": "fixed",
+                  "fixedColor": "red"
+                }
+              },
+              {
+                "id": "custom.lineStyle",
+                "value": {
+                  "fill": "dash",
+                  "dash": [
+                    4,
+                    4
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ],
+          "showLegend": true
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "targets": [
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P8D9ADF90DB2E3ECF"
+          },
+          "expr": "superio_fan_control_avg_temp_celsius{node=~\"$host\"}",
+          "legendFormat": "{{node}} 5 分平均",
+          "refId": "A"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P8D9ADF90DB2E3ECF"
+          },
+          "expr": "superio_fan_control_start_pwm{node=~\"$host\"}",
+          "legendFormat": "{{node}} 起動 PWM",
+          "refId": "B"
+        },
+        {
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P8D9ADF90DB2E3ECF"
+          },
+          "expr": "max(superio_fan_control_target_celsius{node=~\"$host\"})",
+          "legendFormat": "目標",
+          "refId": "C"
+        }
+      ],
+      "description": "superio-fan-control が見ている Tctl の 5 分平均（左軸）と、それに応じて動かした CPU ファンの起動 PWM（右軸、点線）。5 分平均が目標を 0.5°C 超えると 30 秒ごとに起動 PWM を上げ（上限 160）、下回ると下げる（下限 40 = BIOS の値）。実際の PWM はチップのカーブで「起動 PWM + 4 ×（温度 − 30°C）」。"
     },
     {
       "type": "stat",

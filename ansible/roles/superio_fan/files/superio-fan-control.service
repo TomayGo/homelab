@@ -1,0 +1,13 @@
+[Unit]
+Description=Keep the moving average of CPU Tctl below a target by raising the IT8613E CPU fan start PWM
+After=superio-fan-metrics.timer
+
+[Service]
+Type=simple
+EnvironmentFile=/etc/default/superio-fan-metrics
+ExecStart=/usr/local/sbin/superio-fan-control
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

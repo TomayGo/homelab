@@ -6,6 +6,15 @@
     group: root
     mode: "0755"
 
+- name: /usr/local/sbin/superio-fan-control
+  ansible.builtin.copy:
+    src: superio-fan-control
+    dest: /usr/local/sbin/superio-fan-control
+    owner: root
+    group: root
+    mode: "0755"
+  notify: Restart superio-fan-control
+
 - name: /etc/default/superio-fan-metrics
   ansible.builtin.template:
     src: superio-fan-metrics.default.j2
@@ -13,6 +22,7 @@
     owner: root
     group: root
     mode: "0644"
+  notify: Restart superio-fan-control
 
 - name: superio-fan-metrics service and timer
   ansible.builtin.copy:
@@ -24,7 +34,10 @@
   loop:
     - superio-fan-metrics.service
     - superio-fan-metrics.timer
-  notify: Reload systemd for superio-fan-metrics
+    - superio-fan-control.service
+  notify:
+    - Reload systemd for superio-fan-metrics
+    - Restart superio-fan-control
 
 - name: Flush handlers before starting the timer
   ansible.builtin.meta: flush_handlers
@@ -35,4 +48,11 @@
     enabled: true
     state: started
   # 初回の --check では unit がまだ無いので失敗する
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: superio-fan-control.service is {{ 'enabled and running' if superio_fan_control_enabled else 'stopped and disabled' }}
+  ansible.builtin.systemd_service:
+    name: superio-fan-control.service
+    enabled: "{{ superio_fan_control_enabled }}"
+    state: "{{ 'started' if superio_fan_control_enabled else 'stopped' }}"
   ignore_errors: "{{ ansible_check_mode }}"

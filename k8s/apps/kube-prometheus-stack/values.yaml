@@ -64,6 +64,35 @@ additionalPrometheusRulesMap:
         for: 10m
         labels:
           severity: warning
+      # superio-fan-control（CPU ファンの起動 PWM を Tctl の 5 分平均で動かすデーモン）。止まってもチップの
+      # カーブはそのまま動くので warning。active=0 は起動時にカーブのレジスタが想定と違って制御を断った状態
+      - alert: FanControlDown
+        annotations:
+          summary: '{{ $labels.node }} の superio-fan-control が CPU ファンを制御していない'
+          description: 'journalctl -u superio-fan-control を見る。"fan curve registers are not what this controller was tuned for" なら BIOS の更新などでカーブが変わっている。測り直してから superio_fan_control_expect を直す'
+        expr: |
+          (superio_fan_control_active == 0)
+          or
+          (time() - node_textfile_mtime_seconds{file=~".*/superio-fan-control\\.prom"} > 300)
+          or
+          (up{job="node"} == 1 unless on(node) node_textfile_mtime_seconds{file=~".*/superio-fan-control\\.prom"})
+        for: 10m
+        labels:
+          severity: warning
+      # 起動 PWM を上限まで上げても 5 分平均が目標を大きく超えたまま。夜間バックアップ（10〜25 分）では鳴らない長さにした
+      - alert: FanControlSaturated
+        annotations:
+          summary: '{{ $labels.node }} の CPU 温度の 5 分平均が {{ $value | printf "%.1f" }}°C（起動 PWM は上限）'
+          description: 長く続く負荷か、室温が高い。上限（superio_fan_control_max）を上げるか、負荷を他のノードに移す
+        expr: |
+          superio_fan_control_avg_temp_celsius
+            > on(node) (superio_fan_control_target_celsius + 5)
+          and on(node)
+          superio_fan_control_start_pwm
+            >= on(node) superio_fan_control_start_pwm_limit{bound="max"}
+        for: 1h
+        labels:
+          severity: warning
       - alert: HighCpuUsage
         annotations:
           summary: '{{ $labels.node }} CPU usage {{ $value | printf "%.1f" }}%'

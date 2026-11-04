@@ -5,3 +5,30 @@ superio_fan_base: "0x0a30"
 superio_fan_fans:
   cpu: 2
   system: 3
+
+# superio-fan-control: CPU ファン（fan2）の自動カーブの「起動 PWM」（0x6b）を、CPU 温度（k10temp Tctl）の
+# 5 分平均が目標を超えないように動かす。リアルタイムの制御はチップのカーブのまま
+# （PWM = 起動 PWM + 4 ×（temp3 − 30°C）、95°C で全開。temp3 ≒ Tctl）。値は 2026-11-05 の測定で決めた（docs/phase5.md）
+superio_fan_control_enabled: true
+superio_fan_control_reg: "0x6b"
+# これと違えば制御しない（BIOS のカーブ: 0x16 自動・temp3、停止 25°C、開始 30°C、全開 95°C、傾き 32/8 PWM/°C）
+superio_fan_control_expect:
+  "0x16": "0x90"
+  "0x68": "0x19"
+  "0x69": "0x1e"
+  "0x6a": "0x5f"
+  "0x6c": "0x20"
+superio_fan_control_target: 45
+superio_fan_control_window: 300
+# MIN は BIOS の値。160 より上はアイドルで 2〜4°C しか下がらないのに回転数が 1900 → 3200 rpm と大きく上がる
+superio_fan_control_min: 40
+superio_fan_control_max: 160
+superio_fan_control_update: 30
+# ゲイン 4 / ステップ 8 だと 5 分平均の遅れで振動した（シミュレーション）。1 / 4 で行き過ぎが小さい
+superio_fan_control_gain: 1
+superio_fan_control_step: 4
+superio_fan_control_deadband: 0.5
+# 直近 1 分の平均が「目標 − これ」より低ければ、5 分平均を待たずに下げる。あわせて、カーブがすでに全開
+# （起動 PWM + 4 ×（Tctl − 30）≥ 255）のときは上げない。どちらもないと、89°C の負荷のあいだに 160 まで
+# 溜まり、負荷が終わって Tctl が 33°C に下がっても 20 分ほど 2000 rpm で回り続けた（2026-11-05 pve-2）
+superio_fan_control_release: 3
