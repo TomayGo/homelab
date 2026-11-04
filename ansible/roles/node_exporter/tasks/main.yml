@@ -32,6 +32,15 @@
         mode: "0755"
       notify: Restart node_exporter
 
+# textfile collector の置き場。いまは thunderbolt_net の tb-storm-watchdog.sh が書く
+- name: /var/lib/node_exporter/textfile_collector
+  ansible.builtin.file:
+    path: /var/lib/node_exporter/textfile_collector
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
 - name: /etc/systemd/system/node_exporter.service
   ansible.builtin.copy:
     src: node_exporter.service
