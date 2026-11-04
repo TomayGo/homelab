@@ -74,8 +74,8 @@ if ! wait_carrier 20; then
     fi
 fi
 
-# Trigger ECMP route setup (waits for both TB interfaces, idempotent).
+# Set the TB offloads (waits for both TB interfaces, idempotent).
 # Runs in the FOREGROUND: this script is already detached from udev, and a
 # backgrounded child would be killed with the systemd-run unit's cgroup,
-# leaving table 100 empty after the netdev was re-created.
+# leaving the offloads on after the netdev was re-created.
 /usr/local/bin/thunderbolt-ecmp-setup.sh </dev/null >/dev/null 2>&1

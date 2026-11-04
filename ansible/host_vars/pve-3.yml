@@ -8,13 +8,3 @@ vmbr9_address: 10.10.3.1/28
 manual_ifaces:
   - nic2
   - wlp4s0
-# 他ノードの loopback への ECMP（table 100）
-mesh_ecmp_routes:
-  - dest: 10.0.4.101
-    nexthops:
-      - { via: 10.0.4.5, dev: tb1 }
-      - { via: 10.0.4.9, dev: tb0 }
-  - dest: 10.0.4.102
-    nexthops:
-      - { via: 10.0.4.9, dev: tb0 }
-      - { via: 10.0.4.5, dev: tb1 }
