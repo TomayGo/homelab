@@ -32,3 +32,14 @@ router ospf
  ospf router-id {{ mesh_loopback }}
 exit
 !
+! OSPF 経路の送信元を dummy0 の loopback にする。
+! src が無いと、ホスト発の接続（Ceph の OSD 間など。bind しない）は出口の tb の
+! アドレスを送信元に使う。ケーブルを抜くと tb の netdev ごとそのアドレスが消え、
+! 経路が別ノード経由に切り替わっても戻りパケットの宛先が無くなって、
+! 新しいケーブルが刺さるまで接続が止まる（2026-11-04 に Ceph が約 47 秒止まった）。
+route-map MESH-SRC permit 10
+ set src {{ mesh_loopback }}
+exit
+!
+ip protocol ospf route-map MESH-SRC
+!
