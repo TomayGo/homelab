@@ -1,3 +1,15 @@
 # {{ ansible_managed }}
 SUPERIO_FAN_BASE={{ superio_fan_base }}
 SUPERIO_FAN_FANS="{% for name, n in superio_fan_fans.items() %}{{ name }}:{{ n }}{{ ' ' if not loop.last }}{% endfor %}"
+# superio-fan-control（CPU ファンの起動 PWM を CPU 温度の移動平均で動かす）
+SUPERIO_FAN_CONTROL_REG={{ superio_fan_control_reg }}
+SUPERIO_FAN_CONTROL_EXPECT="{% for r, v in superio_fan_control_expect.items() %}{{ r }}={{ v }}{{ ' ' if not loop.last }}{% endfor %}"
+SUPERIO_FAN_CONTROL_TARGET={{ superio_fan_control_target }}
+SUPERIO_FAN_CONTROL_WINDOW={{ superio_fan_control_window }}
+SUPERIO_FAN_CONTROL_MIN={{ superio_fan_control_min }}
+SUPERIO_FAN_CONTROL_MAX={{ superio_fan_control_max }}
+SUPERIO_FAN_CONTROL_UPDATE={{ superio_fan_control_update }}
+SUPERIO_FAN_CONTROL_GAIN={{ superio_fan_control_gain }}
+SUPERIO_FAN_CONTROL_STEP={{ superio_fan_control_step }}
+SUPERIO_FAN_CONTROL_DEADBAND={{ superio_fan_control_deadband }}
+SUPERIO_FAN_CONTROL_RELEASE={{ superio_fan_control_release }}

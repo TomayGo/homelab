@@ -1,0 +1,169 @@
+#!/usr/bin/python3 -I
+# CPU ファン（IT8613E の自動制御チャンネル）の「起動 PWM」を、CPU 温度（k10temp Tctl）の 5 分平均が
+# 目標を超えないように少しずつ動かす。
+#
+# リアルタイムの制御はチップの SmartGuardian に任せたまま（PWM = 起動 PWM + 傾き ×（温度 − 開始温度））。
+# このデーモンが書くのは起動 PWM のレジスタ 1 つだけで、範囲は [MIN, MAX]。止まったり落ちたりしても
+# チップのカーブはそのまま動き続ける。終了するときは起動 PWM を MIN（BIOS の値）に戻す。
+#
+# 設定は /etc/default/superio-fan-metrics（ロール superio_fan の defaults から作る）
+import collections
+import fcntl
+import glob
+import os
+import signal
+import sys
+import time
+
+env = os.environ.get
+BASE = int(env("SUPERIO_FAN_BASE", "0x0a30"), 0)
+REG = int(env("SUPERIO_FAN_CONTROL_REG", "0x6b"), 0)  # 起動 PWM
+# 起動時にこの値になっていなければ制御しない（BIOS 更新などでカーブの意味が変わったときの保険）。
+# "reg=value ..." の形。自動モード・温度入力（0x16）、開始温度、全開温度、傾き
+EXPECT = {int(k, 0): int(v, 0) for k, v in (x.split("=") for x in env("SUPERIO_FAN_CONTROL_EXPECT", "").split())}
+MIN = int(env("SUPERIO_FAN_CONTROL_MIN", "40"))
+MAX = int(env("SUPERIO_FAN_CONTROL_MAX", "160"))
+TARGET = float(env("SUPERIO_FAN_CONTROL_TARGET", "45"))
+WINDOW = int(env("SUPERIO_FAN_CONTROL_WINDOW", "300"))  # 平均をとる秒数
+SAMPLE = 5  # 温度を読む間隔（秒）
+UPDATE = int(env("SUPERIO_FAN_CONTROL_UPDATE", "30"))  # 起動 PWM を見直す間隔（秒）
+GAIN = float(env("SUPERIO_FAN_CONTROL_GAIN", "4"))  # 1 回の見直しで、平均の超過 1°C あたり動かす PWM
+STEP = int(env("SUPERIO_FAN_CONTROL_STEP", "8"))  # 1 回に動かす PWM の上限
+DEADBAND = float(env("SUPERIO_FAN_CONTROL_DEADBAND", "0.5"))
+# 直近 1 分の平均が「目標 − RELEASE」より低ければ、5 分平均を待たずに起動 PWM を STEP ずつ下げる
+# （負荷が終わったあと、5 分平均の遅れで冷やしすぎるのを防ぐ）
+RELEASE = float(env("SUPERIO_FAN_CONTROL_RELEASE", "3"))
+SHORT = 60  # 直近の平均をとる秒数
+TEXTFILE = "/var/lib/node_exporter/textfile_collector/superio-fan-control.prom"
+LOCK = "/run/lock/superio-fan-metrics.lock"  # superio-fan-metrics と同じロック（index/data の取り合いを防ぐ）
+
+lock = open(LOCK, "w")
+fd = os.open("/dev/port", os.O_RDWR)
+
+
+def io(reg, value=None):
+    fcntl.flock(lock, fcntl.LOCK_EX)
+    try:
+        os.lseek(fd, BASE + 5, 0)
+        os.write(fd, bytes([reg]))
+        os.lseek(fd, BASE + 6, 0)
+        if value is None:
+            return os.read(fd, 1)[0]
+        os.write(fd, bytes([value]))
+    finally:
+        fcntl.flock(lock, fcntl.LOCK_UN)
+
+
+def log(msg):
+    print(msg, file=sys.stderr, flush=True)
+
+
+def tctl_path():
+    for n in glob.glob("/sys/class/hwmon/hwmon*/name"):
+        if open(n).read().strip() == "k10temp":
+            return os.path.join(os.path.dirname(n), "temp1_input")
+    raise SystemExit("k10temp not found")
+
+
+def write_metrics(active, avg, pwm):
+    lines = [
+        "# HELP superio_fan_control_active 1 while superio-fan-control is adjusting the CPU fan start PWM",
+        "# TYPE superio_fan_control_active gauge",
+        f"superio_fan_control_active {int(active)}",
+        "# HELP superio_fan_control_target_celsius Target for the moving average of CPU Tctl",
+        "# TYPE superio_fan_control_target_celsius gauge",
+        f"superio_fan_control_target_celsius {TARGET}",
+        "# HELP superio_fan_control_window_seconds Length of the moving average",
+        "# TYPE superio_fan_control_window_seconds gauge",
+        f"superio_fan_control_window_seconds {WINDOW}",
+        "# HELP superio_fan_control_start_pwm_limit Range the controller may move the start PWM in (0-255)",
+        "# TYPE superio_fan_control_start_pwm_limit gauge",
+        f'superio_fan_control_start_pwm_limit{{bound="min"}} {MIN}',
+        f'superio_fan_control_start_pwm_limit{{bound="max"}} {MAX}',
+    ]
+    if avg is not None:
+        lines += [
+            "# HELP superio_fan_control_avg_temp_celsius Moving average of CPU Tctl used by the controller",
+            "# TYPE superio_fan_control_avg_temp_celsius gauge",
+            f"superio_fan_control_avg_temp_celsius {avg:.2f}",
+        ]
+    if pwm is not None:
+        lines += [
+            "# HELP superio_fan_control_start_pwm CPU fan start PWM written by the controller (0-255)",
+            "# TYPE superio_fan_control_start_pwm gauge",
+            f"superio_fan_control_start_pwm {pwm}",
+        ]
+    tmp = f"{TEXTFILE}.{os.getpid()}"
+    with open(tmp, "w") as f:
+        f.write("\n".join(lines) + "\n")
+    os.rename(tmp, TEXTFILE)
+
+
+def main():
+    if not 0 <= MIN <= MAX <= 255:
+        raise SystemExit(f"bad limits MIN={MIN} MAX={MAX}")
+    if io(0x58) != 0x90:
+        write_metrics(False, None, None)
+        raise SystemExit("IT8613E environment controller does not answer with the ITE vendor ID")
+    wrong = {r: io(r) for r, v in EXPECT.items() if io(r) != v}
+    if wrong:
+        write_metrics(False, None, None)
+        detail = ", ".join(f"{r:#04x}={v:#04x} (expected {EXPECT[r]:#04x})" for r, v in wrong.items())
+        raise SystemExit(f"fan curve registers are not what this controller was tuned for: {detail}")
+
+    stop = []
+    signal.signal(signal.SIGTERM, lambda *_: stop.append(1))
+    signal.signal(signal.SIGINT, lambda *_: stop.append(1))
+
+    tpath = tctl_path()
+    temps = collections.deque(maxlen=WINDOW // SAMPLE)
+    recent = collections.deque(maxlen=SHORT // SAMPLE)
+    # チップのカーブ: PWM = 起動 PWM + 傾き ×（温度 − 開始温度）。傾きは 1/8 PWM/°C 単位
+    auto_base = REG - 3
+    t_start = io(auto_base + 1)
+    slope = (io(auto_base + 4) & 0x7F) / 8
+    # 普通に止めたときは MIN に戻している。SIGKILL などで落ちたあとは、残っている値から続ける
+    pwm = min(max(io(REG), MIN), MAX)
+    io(REG, pwm)
+    log(f"start: target {TARGET}°C over {WINDOW}s, start PWM {pwm} in [{MIN}, {MAX}]")
+    last_update = time.monotonic()
+    try:
+        while not stop:
+            t = int(open(tpath).read()) / 1000
+            temps.append(t)
+            recent.append(t)
+            now = time.monotonic()
+            if now - last_update >= UPDATE:
+                last_update = now
+                avg = sum(temps) / len(temps)
+                avg1 = sum(recent) / len(recent)
+                seen = io(REG)
+                if seen != pwm:
+                    log(f"start PWM was changed from outside: {pwm} -> {seen}")
+                    pwm = min(max(seen, MIN), MAX)
+                err = avg - TARGET
+                # カーブがもう全開なら、起動 PWM を上げても回転数は変わらない（積分が溜まるだけ）
+                saturated = pwm + slope * (avg1 - t_start) >= 255
+                delta = 0
+                if err > DEADBAND and avg1 > TARGET and not saturated:
+                    delta = min(STEP, round(GAIN * err))
+                elif avg1 < TARGET - RELEASE:
+                    delta = -STEP
+                elif err < -DEADBAND:
+                    delta = -min(STEP, round(-GAIN * err))
+                new = min(max(pwm + delta, MIN), MAX)
+                if new != pwm:
+                    io(REG, new)
+                    log(f"avg5 {avg:.1f}°C avg1 {avg1:.1f}°C: start PWM {pwm} -> {new}")
+                    pwm = new
+                write_metrics(True, avg, pwm)
+            time.sleep(SAMPLE)
+    finally:
+        io(REG, MIN)
+        write_metrics(False, None, MIN)
+        log(f"stop: start PWM back to {MIN}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
