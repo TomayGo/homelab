@@ -79,20 +79,6 @@ additionalPrometheusRulesMap:
         for: 10m
         labels:
           severity: warning
-      # 起動 PWM を上限まで上げても 5 分平均が目標を大きく超えたまま。夜間バックアップ（10〜25 分）では鳴らない長さにした
-      - alert: FanControlSaturated
-        annotations:
-          summary: '{{ $labels.node }} の CPU 温度の 5 分平均が {{ $value | printf "%.1f" }}°C（起動 PWM は上限）'
-          description: 長く続く負荷か、室温が高い。上限（superio_fan_control_max）を上げるか、負荷を他のノードに移す
-        expr: |
-          superio_fan_control_avg_temp_celsius
-            > on(node) (superio_fan_control_target_celsius + 5)
-          and on(node)
-          superio_fan_control_start_pwm
-            >= on(node) superio_fan_control_start_pwm_limit{bound="max"}
-        for: 1h
-        labels:
-          severity: warning
       - alert: HighCpuUsage
         annotations:
           summary: '{{ $labels.node }} CPU usage {{ $value | printf "%.1f" }}%'
