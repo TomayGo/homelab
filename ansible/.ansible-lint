@@ -1,0 +1,17 @@
+---
+# 現状のツリーが通る水準から始める。warn_list は表示だけで、CI は落とさない。
+exclude_paths:
+  - collections/
+  - collected/
+  # Ansible の YAML ではない（PVE のゲスト設定、ホストに置くファイル）
+  - guest-configs/
+  - host_files/
+
+skip_list:
+  # YAML の書式はリポジトリ直下の .yamllint（lint ワークフローの yamllint ジョブ）で見る
+  - yaml
+
+warn_list:
+  - name[casing]
+  - var-naming[no-role-prefix]
+  - no-changed-when
