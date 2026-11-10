@@ -1,0 +1,66 @@
+# クローン PVC の storage は元の PVC 以上にする（元の PVC を広げたらここも直す。小さいとプロビジョニングに失敗する）
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-openwebui
+spec:
+  schedule: 50 3 * * *
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: snap-backup
+            image: ghcr.io/tomaygo/backup-tools:sha-01d8a40
+            env:
+            - name: SNAP_PVCS
+              value: openwebui-data
+            - name: RUN_CRONJOB
+              value: pvc-backup-openwebui-run
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-openwebui-run
+spec:
+  schedule: 50 3 * * *
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          containers:
+          - name: backup
+            image: ghcr.io/tomaygo/backup-tools:sha-01d8a40
+            env:
+            - name: BACKUP_NAME
+              value: ai/openwebui
+            - name: ZSTD_THREADS
+              value: '6'
+            - name: EXCLUDES
+              value: cache lost+found
+            - name: SQLITE_DBS
+              value: webui.db vector_db/chroma.sqlite3
+            volumeMounts:
+            - name: data
+              mountPath: /src
+          volumes:
+          - name: data
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    app.kubernetes.io/managed-by: snap-backup
+                spec:
+                  accessModes:
+                  - ReadWriteOnce
+                  storageClassName: ceph-rbd
+                  dataSource:
+                    apiGroup: snapshot.storage.k8s.io
+                    kind: VolumeSnapshot
+                    name: openwebui-data-backup
+                  resources:
+                    requests:
+                      storage: 20Gi

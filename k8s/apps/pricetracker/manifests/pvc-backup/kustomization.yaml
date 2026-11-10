@@ -1,0 +1,9 @@
+# PVC のバックアップ。共通部分は k8s/components/pvc-backup/ にあり、cronjobs.yaml はこのアプリの分だけを足すパッチ
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: pricetracker
+components:
+  - ../../../../components/pvc-backup/rbac
+  - ../../../../components/pvc-backup/cronjob
+patches:
+  - path: cronjobs.yaml

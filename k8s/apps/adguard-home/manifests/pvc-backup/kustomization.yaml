@@ -1,0 +1,9 @@
+# PVC のバックアップ。共通部分は k8s/components/pvc-backup/ にある。primary と replica で CronJob の組を 1 つずつ作り、RBAC は共有する
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: dns
+components:
+  - ../../../../components/pvc-backup/rbac
+resources:
+  - primary
+  - replica
