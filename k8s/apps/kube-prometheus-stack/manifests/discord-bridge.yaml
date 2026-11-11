@@ -17,8 +17,6 @@ spec:
     type: RollingUpdate
   template:
     metadata:
-      annotations:
-        kubectl.kubernetes.io/restartedAt: '2026-10-11T12:00:00+09:00'
       labels:
         app: discord-bridge
     spec:
