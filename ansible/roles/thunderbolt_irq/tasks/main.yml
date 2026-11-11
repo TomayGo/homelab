@@ -8,15 +8,17 @@
   notify: Rerun thunderbolt-irq-affinity
 
 - name: /etc/systemd/system/thunderbolt-irq-affinity.service
-  ansible.builtin.copy:
-    src: thunderbolt-irq-affinity.service
-    dest: /etc/systemd/system/thunderbolt-irq-affinity.service
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Rerun thunderbolt-irq-affinity
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: install
+  vars:
+    systemd_unit_files:
+      - thunderbolt-irq-affinity.service
+    systemd_unit_notify: Rerun thunderbolt-irq-affinity
 
 - name: thunderbolt-irq-affinity.service is enabled
-  ansible.builtin.systemd_service:
-    name: thunderbolt-irq-affinity
-    enabled: true
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: enable
+  vars:
+    systemd_unit_name: thunderbolt-irq-affinity

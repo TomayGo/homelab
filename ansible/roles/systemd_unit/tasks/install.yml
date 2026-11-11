@@ -1,0 +1,14 @@
+# 呼ぶ側のロールの files/ にある unit を /etc/systemd/system に置く。単体では使わない。
+# 呼ぶ側のロールが import_role（tasks_from: install）の vars で渡す:
+#   systemd_unit_files   unit のファイル名のリスト
+#   systemd_unit_notify  どれかが変わったときに呼ぶ handler（名前か、名前のリスト。呼ぶ側のロールにある）
+- name: Unit files {{ systemd_unit_files | join(', ') }}
+  ansible.builtin.copy:
+    # ansible_parent_role_paths の先頭は、このロールを import したロール
+    src: "{{ ansible_parent_role_paths | first }}/files/{{ item }}"
+    dest: "/etc/systemd/system/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop: "{{ systemd_unit_files }}"
+  notify: "{{ systemd_unit_notify }}"
