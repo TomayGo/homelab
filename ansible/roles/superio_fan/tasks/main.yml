@@ -1,3 +1,21 @@
+# superio-fan-metrics と superio-fan-control が import する。スクリプトより先に置く
+- name: /usr/local/lib/superio-fan
+  ansible.builtin.file:
+    path: /usr/local/lib/superio-fan
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: /usr/local/lib/superio-fan/superio_ec.py
+  ansible.builtin.copy:
+    src: superio_ec.py
+    dest: /usr/local/lib/superio-fan/superio_ec.py
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart superio-fan-control
+
 - name: /usr/local/sbin/superio-fan-metrics
   ansible.builtin.copy:
     src: superio-fan-metrics

@@ -8,12 +8,16 @@
 #
 # 設定は /etc/default/superio-fan-metrics（ロール superio_fan の defaults から作る）
 import collections
-import fcntl
 import glob
 import os
 import signal
 import sys
 import time
+
+# レジスタアクセスは superio-fan-metrics と共有する（superio_ec.py）。-I で起動しているので、置き場所を明示する
+sys.dont_write_bytecode = True
+sys.path.insert(0, "/usr/local/lib/superio-fan")
+import superio_ec  # noqa: E402
 
 env = os.environ.get
 BASE = int(env("SUPERIO_FAN_BASE", "0x0a30"), 0)
@@ -35,23 +39,9 @@ DEADBAND = float(env("SUPERIO_FAN_CONTROL_DEADBAND", "0.5"))
 RELEASE = float(env("SUPERIO_FAN_CONTROL_RELEASE", "3"))
 SHORT = 60  # 直近の平均をとる秒数
 TEXTFILE = "/var/lib/node_exporter/textfile_collector/superio-fan-control.prom"
-LOCK = "/run/lock/superio-fan-metrics.lock"  # superio-fan-metrics と同じロック（index/data の取り合いを防ぐ）
 
-lock = open(LOCK, "w")
-fd = os.open("/dev/port", os.O_RDWR)
-
-
-def io(reg, value=None):
-    fcntl.flock(lock, fcntl.LOCK_EX)
-    try:
-        os.lseek(fd, BASE + 5, 0)
-        os.write(fd, bytes([reg]))
-        os.lseek(fd, BASE + 6, 0)
-        if value is None:
-            return os.read(fd, 1)[0]
-        os.write(fd, bytes([value]))
-    finally:
-        fcntl.flock(lock, fcntl.LOCK_UN)
+# 1 回の読み書きごとに、superio-fan-metrics と同じロックを取って放す
+io = superio_ec.EC(BASE).io
 
 
 def log(msg):
@@ -102,7 +92,7 @@ def write_metrics(active, avg, pwm):
 def main():
     if not 0 <= MIN <= MAX <= 255:
         raise SystemExit(f"bad limits MIN={MIN} MAX={MAX}")
-    if io(0x58) != 0x90:
+    if io(superio_ec.VENDOR_REG) != superio_ec.VENDOR_ITE:
         write_metrics(False, None, None)
         raise SystemExit("IT8613E environment controller does not answer with the ITE vendor ID")
     wrong = {r: io(r) for r, v in EXPECT.items() if io(r) != v}
