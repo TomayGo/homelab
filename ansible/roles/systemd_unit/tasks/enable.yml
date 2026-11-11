@@ -3,7 +3,7 @@
 #   systemd_unit_name     unit 名
 #   systemd_unit_enabled  省略すると true
 #   systemd_unit_state    省略すると enable だけで、起動も停止もしない
-- name: Unit {{ systemd_unit_name }} is {{ 'enabled' if (systemd_unit_enabled | default(true)) else 'disabled' }}{{ (' and ' + systemd_unit_state) if systemd_unit_state is defined else '' }}
+- name: Enable (or disable) and set the state of {{ systemd_unit_name }}
   ansible.builtin.systemd_service:
     name: "{{ systemd_unit_name }}"
     enabled: "{{ systemd_unit_enabled | default(true) }}"

@@ -4,14 +4,14 @@
 #   release_binary_repo     GitHub の owner/repo
 #   release_binary_version  入れる版（v は付けない）
 #   release_binary_notify   入れ替えたときに呼ぶ handler（呼ぶ側のロールにある）
-- name: Installed {{ release_binary_name }} version
+- name: Installed version of {{ release_binary_name }}
   ansible.builtin.command: /usr/local/bin/{{ release_binary_name }} --version
   register: release_binary_installed
   changed_when: false
   failed_when: false
   check_mode: false
 
-- name: Install {{ release_binary_name }} {{ release_binary_version }}
+- name: Install {{ release_binary_name ~ ' ' ~ release_binary_version }}
   when: ("version " + release_binary_version + " ") not in (release_binary_installed.stdout + release_binary_installed.stderr)
   block:
     - name: Download and unpack {{ release_binary_name }}
@@ -21,13 +21,13 @@
         remote_src: true
 
     # check mode では展開されないので、コピーの代わりに「入れ替える予定」を表示する
-    - name: Install the {{ release_binary_name }} binary (check mode)
+    - name: Report instead of installing (check mode) the binary of {{ release_binary_name }}
       ansible.builtin.debug:
         msg: "would install {{ release_binary_name }} {{ release_binary_version }}"
       changed_when: true
       when: ansible_check_mode
 
-    - name: Install the {{ release_binary_name }} binary
+    - name: Install the binary of {{ release_binary_name }}
       when: not ansible_check_mode
       ansible.builtin.copy:
         src: "/tmp/{{ release_binary_name }}-{{ release_binary_version }}.linux-amd64/{{ release_binary_name }}"
