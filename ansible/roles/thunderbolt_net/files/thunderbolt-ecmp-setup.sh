@@ -14,7 +14,7 @@
 exec 200>/var/lock/thunderbolt-ecmp-setup.lock
 flock -n 200 || exit 0
 
-for i in $(seq 1 60); do
+for _ in $(seq 1 60); do
     ip -4 -o addr show tb0 2>/dev/null | grep -q 'inet ' &&
     ip -4 -o addr show tb1 2>/dev/null | grep -q 'inet ' && break
     sleep 2
@@ -29,7 +29,7 @@ done
 # Remove the legacy static ECMP if it is still there.
 while ip rule show | grep -q 'lookup 100'; do
     pref_from=$(ip rule show | awk '/lookup 100/ {sub(":","",$1); print $1, $3; exit}')
-    ip rule del pref ${pref_from% *} from ${pref_from#* } lookup 100 || break
+    ip rule del pref "${pref_from% *}" from "${pref_from#* }" lookup 100 || break
 done
 ip route flush table 100 2>/dev/null
 

@@ -58,7 +58,7 @@ reload_driver() {
     sleep 5
     if [ "$(cat "/sys/class/net/${iface}/operstate" 2>/dev/null)" != "down" ] \
        && iw dev "$iface" info 2>/dev/null | grep -q 'type AP'; then
-        logger -t wifi-watchdog "$1 reload complete, ${name} AP back up (usb $(cat /sys/class/net/${iface}/device/../speed 2>/dev/null)M)"
+        logger -t wifi-watchdog "$1 reload complete, ${name} AP back up (usb $(cat "/sys/class/net/${iface}/device/../speed" 2>/dev/null)M)"
     else
         logger -t wifi-watchdog "ERROR: ${name} AP did not come back up after reload"
     fi
@@ -76,7 +76,7 @@ dump_5g() {
         for r in 210 230 234 238 23c 240 418 520 8a0 8a4 2d38; do
             echo "$r 4" > "$dbg/read_reg" && echo "$r $(grep -o '0x[0-9a-f]*$' "$dbg/read_reg")"
         done
-        echo "edcca_enable=$(cat $dbg/edcca_enable 2>/dev/null)"
+        echo "edcca_enable=$(cat "$dbg/edcca_enable" 2>/dev/null)"
         for f in mac_0 mac_2 mac_4 mac_5; do echo "--- $f"; cat "$dbg/$f"; done
         echo "--- phy_info"; cat "$dbg/phy_info"
         echo "--- station dump"; iw dev $IF5 station dump
