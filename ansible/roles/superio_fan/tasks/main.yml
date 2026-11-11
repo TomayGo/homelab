@@ -24,6 +24,8 @@
     mode: "0644"
   notify: Restart superio-fan-control
 
+# metrics の unit を変えただけでは fan-control を再起動しない（再起動すると起動 PWM が MIN に戻り、移動平均を取り直す）。
+# fan-control を再起動するのは、そのスクリプト、unit、両方が読む /etc/default/superio-fan-metrics が変わったときだけ
 - name: superio-fan-metrics service and timer
   ansible.builtin.copy:
     src: "{{ item }}"
@@ -34,7 +36,15 @@
   loop:
     - superio-fan-metrics.service
     - superio-fan-metrics.timer
-    - superio-fan-control.service
+  notify: Reload systemd for superio-fan-metrics
+
+- name: /etc/systemd/system/superio-fan-control.service
+  ansible.builtin.copy:
+    src: superio-fan-control.service
+    dest: /etc/systemd/system/superio-fan-control.service
+    owner: root
+    group: root
+    mode: "0644"
   notify:
     - Reload systemd for superio-fan-metrics
     - Restart superio-fan-control
