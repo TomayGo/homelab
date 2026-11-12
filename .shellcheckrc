@@ -1,0 +1,10 @@
+# 現状のツリーが通る水準から始める（lint ワークフローは --severity=warning で実行する）。
+# 下の 4 つは既存のスクリプトに 1〜3 か所ずつある。直したら、ここから外す。
+# SC2034: thunderbolt-ecmp-setup.sh の for i in $(seq ...)（i を使わない待ちループ）
+disable=SC2034
+# SC2155: tofu/proxmox/env.sh の export VAR=$(...)
+disable=SC2155
+# SC2320: tb-storm-watchdog.sh の $?
+disable=SC2320
+# SC3040: images/backup-tools/pvc-backup.sh の set -o pipefail（busybox ash は対応している）
+disable=SC3040
