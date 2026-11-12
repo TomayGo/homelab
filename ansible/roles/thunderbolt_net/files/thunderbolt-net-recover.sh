@@ -16,7 +16,7 @@ fi
 
 # Prevent concurrent runs for the same interface
 # (also stops the rebind below from recursing via the udev add/move it causes)
-exec 200>/var/lock/thunderbolt-net-recover-${IFACE}.lock
+exec 200>"/var/lock/thunderbolt-net-recover-${IFACE}.lock"
 flock -n 200 || exit 0
 
 logger -t thunderbolt-net "Recovering interface $IFACE"
@@ -39,7 +39,7 @@ ethtool -K "$IFACE" tso off gso off gro off 2>/dev/null
 wait_carrier() {
     local i
     for ((i = 0; i < $1; i++)); do
-        [ "$(cat /sys/class/net/$IFACE/carrier 2>/dev/null)" = "1" ] && return 0
+        [ "$(cat "/sys/class/net/$IFACE/carrier" 2>/dev/null)" = "1" ] && return 0
         sleep 1
     done
     return 1
@@ -50,7 +50,7 @@ wait_carrier() {
 # A local down/up does NOT fix that -- only a logout the peer notices does, so
 # unbind/rebind the driver instead of needing a bounce on the other node.
 if ! wait_carrier 20; then
-    TBDEV=$(basename "$(readlink -f /sys/class/net/$IFACE/device 2>/dev/null)")
+    TBDEV=$(basename "$(readlink -f "/sys/class/net/$IFACE/device" 2>/dev/null)")
     if [ -n "$TBDEV" ] && [ -e "$DRV/$TBDEV" ]; then
         logger -t thunderbolt-net "$IFACE NO-CARRIER after ifup, rebinding thunderbolt-net $TBDEV"
         echo "$TBDEV" > "$DRV/unbind" 2>/dev/null

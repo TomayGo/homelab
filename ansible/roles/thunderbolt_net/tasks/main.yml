@@ -25,13 +25,13 @@
     mode: "0644"
 
 - name: /etc/systemd/system/thunderbolt-ecmp.service
-  ansible.builtin.copy:
-    src: thunderbolt-ecmp.service
-    dest: /etc/systemd/system/thunderbolt-ecmp.service
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Reload systemd
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: install
+  vars:
+    systemd_unit_files:
+      - thunderbolt-ecmp.service
+    systemd_unit_notify: Reload systemd
 
 - name: /usr/local/bin/thunderbolt-ecmp-setup.sh
   ansible.builtin.copy:
@@ -50,9 +50,11 @@
     mode: "0755"
 
 - name: thunderbolt-ecmp.service is enabled
-  ansible.builtin.systemd_service:
-    name: thunderbolt-ecmp
-    enabled: true
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: enable
+  vars:
+    systemd_unit_name: thunderbolt-ecmp
 
 # NHI が wedge したときのイベントストーム (カーネルメモリリーク) を検知して unbind する。経緯はスクリプト冒頭
 - name: /usr/local/bin/tb-storm-watchdog.sh
@@ -64,24 +66,22 @@
     mode: "0755"
 
 - name: /etc/systemd/system/tb-storm-watchdog.{service,timer}
-  ansible.builtin.copy:
-    src: "{{ item }}"
-    dest: "/etc/systemd/system/{{ item }}"
-    owner: root
-    group: root
-    mode: "0644"
-  loop:
-    - tb-storm-watchdog.service
-    - tb-storm-watchdog.timer
-  notify: Reload systemd
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: install
+  vars:
+    systemd_unit_files:
+      - tb-storm-watchdog.service
+      - tb-storm-watchdog.timer
+    systemd_unit_notify: Reload systemd
 
 - name: Flush handlers so the new timer unit is known before enabling it
   ansible.builtin.meta: flush_handlers
 
-# check mode では unit がまだ置かれていないので失敗する
 - name: tb-storm-watchdog.timer is enabled and running
-  ansible.builtin.systemd_service:
-    name: tb-storm-watchdog.timer
-    enabled: true
-    state: started
-  ignore_errors: "{{ ansible_check_mode }}"
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: enable
+  vars:
+    systemd_unit_name: tb-storm-watchdog.timer
+    systemd_unit_state: started

@@ -1,36 +1,11 @@
-- name: Installed frr_exporter version
-  ansible.builtin.command: /usr/local/bin/frr_exporter --version
-  register: frr_exporter_installed
-  changed_when: false
-  failed_when: false
-  check_mode: false
-
-- name: Install frr_exporter {{ frr_exporter_version }}
-  when: ("version " + frr_exporter_version + " ") not in (frr_exporter_installed.stdout + frr_exporter_installed.stderr)
-  block:
-    - name: Download and unpack frr_exporter
-      ansible.builtin.unarchive:
-        src: "https://github.com/tynany/frr_exporter/releases/download/v{{ frr_exporter_version }}/frr_exporter-{{ frr_exporter_version }}.linux-amd64.tar.gz"
-        dest: /tmp
-        remote_src: true
-
-    # check mode では展開されないので、コピーの代わりに「入れ替える予定」を表示する
-    - name: Install the frr_exporter binary (check mode)
-      ansible.builtin.debug:
-        msg: "would install frr_exporter {{ frr_exporter_version }}"
-      changed_when: true
-      when: ansible_check_mode
-
-    - name: Install the frr_exporter binary
-      when: not ansible_check_mode
-      ansible.builtin.copy:
-        src: "/tmp/frr_exporter-{{ frr_exporter_version }}.linux-amd64/frr_exporter"
-        dest: /usr/local/bin/frr_exporter
-        remote_src: true
-        owner: root
-        group: root
-        mode: "0755"
-      notify: Restart frr_exporter
+- name: Binary of frr_exporter
+  ansible.builtin.import_role:
+    name: release_binary
+  vars:
+    release_binary_name: frr_exporter
+    release_binary_repo: tynany/frr_exporter
+    release_binary_version: "{{ frr_exporter_version }}"
+    release_binary_notify: Restart frr_exporter
 
 - name: /etc/systemd/system/frr_exporter.service
   ansible.builtin.copy:

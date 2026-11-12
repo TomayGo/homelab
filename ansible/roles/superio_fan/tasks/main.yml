@@ -1,3 +1,21 @@
+# superio-fan-metrics と superio-fan-control が import する。スクリプトより先に置く
+- name: /usr/local/lib/superio-fan
+  ansible.builtin.file:
+    path: /usr/local/lib/superio-fan
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: /usr/local/lib/superio-fan/superio_ec.py
+  ansible.builtin.copy:
+    src: superio_ec.py
+    dest: /usr/local/lib/superio-fan/superio_ec.py
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart superio-fan-control
+
 - name: /usr/local/sbin/superio-fan-metrics
   ansible.builtin.copy:
     src: superio-fan-metrics
@@ -27,42 +45,42 @@
 # metrics の unit を変えただけでは fan-control を再起動しない（再起動すると起動 PWM が MIN に戻り、移動平均を取り直す）。
 # fan-control を再起動するのは、そのスクリプト、unit、両方が読む /etc/default/superio-fan-metrics が変わったときだけ
 - name: superio-fan-metrics service and timer
-  ansible.builtin.copy:
-    src: "{{ item }}"
-    dest: "/etc/systemd/system/{{ item }}"
-    owner: root
-    group: root
-    mode: "0644"
-  loop:
-    - superio-fan-metrics.service
-    - superio-fan-metrics.timer
-  notify: Reload systemd for superio-fan-metrics
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: install
+  vars:
+    systemd_unit_files:
+      - superio-fan-metrics.service
+      - superio-fan-metrics.timer
+    systemd_unit_notify: Reload systemd for superio-fan-metrics
 
 - name: /etc/systemd/system/superio-fan-control.service
-  ansible.builtin.copy:
-    src: superio-fan-control.service
-    dest: /etc/systemd/system/superio-fan-control.service
-    owner: root
-    group: root
-    mode: "0644"
-  notify:
-    - Reload systemd for superio-fan-metrics
-    - Restart superio-fan-control
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: install
+  vars:
+    systemd_unit_files:
+      - superio-fan-control.service
+    systemd_unit_notify:
+      - Reload systemd for superio-fan-metrics
+      - Restart superio-fan-control
 
 - name: Flush handlers before starting the timer
   ansible.builtin.meta: flush_handlers
 
 - name: superio-fan-metrics.timer is enabled and running
-  ansible.builtin.systemd_service:
-    name: superio-fan-metrics.timer
-    enabled: true
-    state: started
-  # 初回の --check では unit がまだ無いので失敗する
-  ignore_errors: "{{ ansible_check_mode }}"
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: enable
+  vars:
+    systemd_unit_name: superio-fan-metrics.timer
+    systemd_unit_state: started
 
-- name: superio-fan-control.service is {{ 'enabled and running' if superio_fan_control_enabled else 'stopped and disabled' }}
-  ansible.builtin.systemd_service:
-    name: superio-fan-control.service
-    enabled: "{{ superio_fan_control_enabled }}"
-    state: "{{ 'started' if superio_fan_control_enabled else 'stopped' }}"
-  ignore_errors: "{{ ansible_check_mode }}"
+- name: superio-fan-control.service is enabled and running, or stopped and disabled
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: enable
+  vars:
+    systemd_unit_name: superio-fan-control.service
+    systemd_unit_enabled: "{{ superio_fan_control_enabled }}"
+    systemd_unit_state: "{{ 'started' if superio_fan_control_enabled else 'stopped' }}"

@@ -1,0 +1,12 @@
+# unit を enable する（state を渡せば start / stop もする）。単体では使わない。
+# 呼ぶ側のロールが import_role（tasks_from: enable）の vars で渡す:
+#   systemd_unit_name     unit 名
+#   systemd_unit_enabled  省略すると true
+#   systemd_unit_state    省略すると enable だけで、起動も停止もしない
+- name: Enable (or disable) and set the state of {{ systemd_unit_name }}
+  ansible.builtin.systemd_service:
+    name: "{{ systemd_unit_name }}"
+    enabled: "{{ systemd_unit_enabled | default(true) }}"
+    state: "{{ systemd_unit_state | default(omit) }}"
+  # 初回の --check では unit がまだ置かれていないので失敗する
+  ignore_errors: "{{ ansible_check_mode }}"

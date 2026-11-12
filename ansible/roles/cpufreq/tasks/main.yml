@@ -8,17 +8,17 @@
   notify: Rerun cpufreq-epp
 
 - name: /etc/systemd/system/cpufreq-epp.service
-  ansible.builtin.copy:
-    src: cpufreq-epp.service
-    dest: /etc/systemd/system/cpufreq-epp.service
-    owner: root
-    group: root
-    mode: "0644"
-  notify: Rerun cpufreq-epp
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: install
+  vars:
+    systemd_unit_files:
+      - cpufreq-epp.service
+    systemd_unit_notify: Rerun cpufreq-epp
 
 - name: cpufreq-epp.service is enabled
-  ansible.builtin.systemd_service:
-    name: cpufreq-epp
-    enabled: true
-  # 初回の --check では unit がまだ無いので失敗する
-  ignore_errors: "{{ ansible_check_mode }}"
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: enable
+  vars:
+    systemd_unit_name: cpufreq-epp
