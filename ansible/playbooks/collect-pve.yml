@@ -3,23 +3,44 @@
   hosts: pve
   gather_facts: false
   vars:
+    # roles/ が配るファイル（playbooks/pve.yml のロール順）。GitHub から入れるバイナリ（node_exporter、frr_exporter、pvectl）と、
+    # スクリプトが書き出す textfile collector の *.prom は回収しない
     collect_files:
+      # pve_network
       - /etc/network/interfaces
+      # frr
       - /etc/frr/frr.conf
       - /etc/frr/daemons
+      # sysctl
       - /etc/sysctl.d/90-usb4-ecmp.conf
+      # thunderbolt_net
       - /etc/udev/rules.d/85-thunderbolt-net.rules
       - /etc/udev/rules.d/99-thunderbolt-net.rules
       - /etc/modules-load.d/thunderbolt-net.conf
       - /etc/systemd/system/thunderbolt-ecmp.service
+      - /usr/local/bin/thunderbolt-ecmp-setup.sh
+      - /usr/local/bin/thunderbolt-net-recover.sh
+      - /usr/local/bin/tb-storm-watchdog.sh
+      - /etc/systemd/system/tb-storm-watchdog.service
+      - /etc/systemd/system/tb-storm-watchdog.timer
+      # thunderbolt_irq
+      - /usr/local/bin/thunderbolt-irq-affinity.sh
       - /etc/systemd/system/thunderbolt-irq-affinity.service
+      # cpufreq
+      - /usr/local/bin/cpufreq-epp.sh
+      - /etc/systemd/system/cpufreq-epp.service
+      # node_exporter / frr_exporter / pve_exporter
       - /etc/systemd/system/node_exporter.service
       - /etc/systemd/system/frr_exporter.service
-      - /etc/systemd/system/prometheus-pve-exporter.service
-      - /usr/local/bin/thunderbolt-ecmp-setup.sh
-      - /usr/local/bin/thunderbolt-irq-affinity.sh
-      - /usr/local/bin/thunderbolt-net-recover.sh
       - /etc/prometheus/pve.yml
+      - /etc/systemd/system/prometheus-pve-exporter.service
+      # superio_fan
+      - /usr/local/sbin/superio-fan-metrics
+      - /usr/local/sbin/superio-fan-control
+      - /etc/default/superio-fan-metrics
+      - /etc/systemd/system/superio-fan-metrics.service
+      - /etc/systemd/system/superio-fan-metrics.timer
+      - /etc/systemd/system/superio-fan-control.service
   tasks:
     - name: Fetch files
       ansible.builtin.fetch:
