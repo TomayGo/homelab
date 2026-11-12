@@ -1,0 +1,14 @@
+# agh-replica の分。cronjobs.yaml は共通部分（k8s/components/pvc-backup/cronjob）に足すパッチ
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+components:
+  - ../../../../../components/pvc-backup/cronjob
+patches:
+  # 共通の名前（pvc-backup / pvc-backup-run）をこのアプリの名前に付け替えてから、cronjobs.yaml を当てる
+  - target: {kind: CronJob, name: pvc-backup}
+    patch: |-
+      - {op: replace, path: /metadata/name, value: pvc-backup-agh-replica}
+  - target: {kind: CronJob, name: pvc-backup-run}
+    patch: |-
+      - {op: replace, path: /metadata/name, value: pvc-backup-agh-replica-run}
+  - path: cronjobs.yaml

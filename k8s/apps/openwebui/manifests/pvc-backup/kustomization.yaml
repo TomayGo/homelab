@@ -1,0 +1,16 @@
+# PVC のバックアップ。共通部分は k8s/components/pvc-backup/ にあり、cronjobs.yaml はこのアプリの分だけを足すパッチ
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: ai
+components:
+  - ../../../../components/pvc-backup/rbac
+  - ../../../../components/pvc-backup/cronjob
+patches:
+  # 共通の名前（pvc-backup / pvc-backup-run）をこのアプリの名前に付け替えてから、cronjobs.yaml を当てる
+  - target: {kind: CronJob, name: pvc-backup}
+    patch: |-
+      - {op: replace, path: /metadata/name, value: pvc-backup-openwebui}
+  - target: {kind: CronJob, name: pvc-backup-run}
+    patch: |-
+      - {op: replace, path: /metadata/name, value: pvc-backup-openwebui-run}
+  - path: cronjobs.yaml

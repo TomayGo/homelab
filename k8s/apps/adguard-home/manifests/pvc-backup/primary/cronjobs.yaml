@@ -1,0 +1,83 @@
+# クローン PVC の storage は元の PVC 以上にする（元の PVC を広げたらここも直す。小さいとプロビジョニングに失敗する）
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-agh-primary
+spec:
+  schedule: 10 3 * * *
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: snap-backup
+            image: ghcr.io/tomaygo/backup-tools:sha-01d8a40
+            env:
+            - name: SNAP_PVCS
+              value: conf-agh-primary-0 work-agh-primary-0
+            - name: RUN_CRONJOB
+              value: pvc-backup-agh-primary-run
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-agh-primary-run
+spec:
+  schedule: 10 3 * * *
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            runAsUser: 0
+            runAsGroup: 0
+          containers:
+          - name: backup
+            image: ghcr.io/tomaygo/backup-tools:sha-01d8a40
+            env:
+            - name: BACKUP_NAME
+              value: dns/agh-primary
+            - name: ZSTD_THREADS
+              value: '6'
+            - name: EXCLUDES
+              value: conf/lost+found work/lost+found work/data/filters
+            volumeMounts:
+            - name: conf
+              mountPath: /src/conf
+            - name: work
+              mountPath: /src/work
+          volumes:
+          - name: conf
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    app.kubernetes.io/managed-by: snap-backup
+                spec:
+                  accessModes:
+                  - ReadWriteOnce
+                  storageClassName: ceph-rbd
+                  dataSource:
+                    apiGroup: snapshot.storage.k8s.io
+                    kind: VolumeSnapshot
+                    name: conf-agh-primary-0-backup
+                  resources:
+                    requests:
+                      storage: 256Mi
+          - name: work
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    app.kubernetes.io/managed-by: snap-backup
+                spec:
+                  accessModes:
+                  - ReadWriteOnce
+                  storageClassName: ceph-rbd
+                  dataSource:
+                    apiGroup: snapshot.storage.k8s.io
+                    kind: VolumeSnapshot
+                    name: work-agh-primary-0-backup
+                  resources:
+                    requests:
+                      storage: 16Gi

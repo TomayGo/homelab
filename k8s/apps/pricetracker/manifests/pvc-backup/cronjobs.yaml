@@ -1,0 +1,71 @@
+# クローン PVC の storage は元の PVC 以上にする（元の PVC を広げたらここも直す。小さいとプロビジョニングに失敗する）
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup
+spec:
+  schedule: 55 3 * * *
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: snap-backup
+            image: ghcr.io/tomaygo/backup-tools:sha-01d8a40
+            env:
+            - name: SNAP_PVCS
+              value: pricetracker-data
+            - name: RUN_CRONJOB
+              value: pvc-backup-run
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: pvc-backup-run
+spec:
+  schedule: 55 3 * * *
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          securityContext:
+            runAsUser: 65532
+            runAsGroup: 65532
+            runAsNonRoot: true
+          containers:
+          - name: backup
+            image: ghcr.io/tomaygo/backup-tools:sha-01d8a40
+            env:
+            - name: BACKUP_NAME
+              value: pricetracker/data
+            - name: ZSTD_THREADS
+              value: '6'
+            - name: EXCLUDES
+              value: lost+found
+            - name: SQLITE_DBS
+              value: pricetracker.db
+            securityContext:
+              capabilities:
+                drop:
+                - ALL
+            volumeMounts:
+            - name: data
+              mountPath: /src
+          volumes:
+          - name: data
+            ephemeral:
+              volumeClaimTemplate:
+                metadata:
+                  labels:
+                    app.kubernetes.io/managed-by: snap-backup
+                spec:
+                  accessModes:
+                  - ReadWriteOnce
+                  storageClassName: ceph-rbd
+                  dataSource:
+                    apiGroup: snapshot.storage.k8s.io
+                    kind: VolumeSnapshot
+                    name: pricetracker-data-backup
+                  resources:
+                    requests:
+                      storage: 1Gi
