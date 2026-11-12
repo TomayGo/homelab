@@ -1,0 +1,30 @@
+# 現状のツリーが通る水準から始める。きつくするときは、ルールごとに既存のファイルを直してから。
+extends: default
+
+ignore: |
+  # 暗号化済み（sops が書き出す）
+  *.enc.yaml
+  *.sops.yaml
+  # upstream から取り込んだまま置いているファイル
+  k8s/apps/ceph-csi/manifests/operator-install-*.yaml
+  k8s/apps/snapshot-controller/manifests/snapshot.storage.k8s.io_*.yaml
+  k8s/apps/snapshot-controller/manifests/rbac-snapshot-controller.yaml
+  k8s/apps/snapshot-controller/manifests/setup-snapshot-controller.yaml
+  # ansible-galaxy が入れる（リポジトリには入れていない）
+  ansible/collections/
+  ansible/collected/
+  .terraform/
+
+rules:
+  line-length: disable
+  document-start: disable
+  # GitHub Actions の `on:` を真偽値として扱わない
+  truthy:
+    check-keys: false
+  comments:
+    min-spaces-from-content: 1
+  braces:
+    max-spaces-inside: 1
+  indentation:
+    spaces: consistent
+    indent-sequences: whatever

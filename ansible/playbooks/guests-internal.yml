@@ -5,4 +5,3 @@
   serial: 1
   roles:
     - host_files
-
