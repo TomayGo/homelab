@@ -1,0 +1,14 @@
+# 現状のツリーが通る水準から始める（pycodestyle と Pyflakes だけ。整形は見ない）。
+extend-include = [
+    # 拡張子のない Python スクリプト
+    "ansible/roles/superio_fan/files/superio-fan-control",
+    "ansible/roles/superio_fan/files/superio-fan-metrics",
+]
+extend-exclude = [
+    "ansible/collections",
+    "ansible/collected",
+]
+
+[lint]
+select = ["E", "F", "W"]
+ignore = ["E501"]
