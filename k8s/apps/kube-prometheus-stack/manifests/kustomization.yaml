@@ -9,8 +9,23 @@ resources:
   - namespace.yaml
 generators:
   - secret-generator.yaml
-# ダッシュボードの JSON は dashboards/ に置く。名前は固定（Grafana サイドカーはラベルで拾う）
+# ダッシュボードの JSON は dashboards/ に、discord-bridge と r2-usage-exporter のスクリプトは scripts/ に置く
+# ダッシュボードの名前は固定（Grafana サイドカーはラベルで拾う）
+# スクリプトの ConfigMap も名前を固定している。中身を変えても Pod は自動ではロールしない
+# （discord-bridge.yaml の restartedAt を書き換えるか、kubectl rollout restart する）
 configMapGenerator:
+  - name: discord-bridge-script
+    namespace: monitoring
+    files:
+      - scripts/bridge.py
+    options:
+      disableNameSuffixHash: true
+  - name: r2-usage-exporter-script
+    namespace: monitoring
+    files:
+      - scripts/r2_usage_exporter.py
+    options:
+      disableNameSuffixHash: true
   - name: dashboard-proxmox-ve-cluster
     namespace: monitoring
     files:
