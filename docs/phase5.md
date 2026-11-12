@@ -64,7 +64,7 @@ DKMS の out-of-tree ドライバを入れるとカーネル更新のたびに�
 - 起動 PWM を上げるとカーブ全体が持ち上がる。160 なら 54°C で全開になるので、負荷時はチップのカーブが先に全開にする
 - 起動時に 0x16、0x68〜0x6a、0x6c が BIOS の値と違えば制御しない（`superio_fan_control_active 0` → `FanControlDown`）。止めるときは 40 に戻す。落ちてもチップのカーブは動き続け、再起動すると BIOS が書き直す
 - `superio-fan-metrics` と同じロック（`/run/lock/superio-fan-metrics.lock`）で index/data ポートの取り合いを防ぐ
-- メトリクスは `superio_fan_control_*`（`superio-fan-control.prom`）。アラートは `FanControlDown`（制御していない、10 分）と `FanControlSaturated`（上限まで上げても 5 分平均が目標 + 5°C を 1 時間超えたまま）。ダッシュボードは「ホスト」行の「CPU ファン制御」
+- メトリクスは `superio_fan_control_*`（`superio-fan-control.prom`）。アラートは `FanControlDown`（制御していない、10 分）だけ。上限に張り付いたことを知らせる `FanControlSaturated` も入れていたが、mc の VM などのふつうの負荷が続くだけで鳴り、対処することもないので 2026-11-10 に消した。ダッシュボードは「ホスト」行の「CPU ファン制御」
 
 起動 PWM を固定し、4 分ずつ置いたときの最後の 60 秒（アイドル、3 台同時に測定）。
 
