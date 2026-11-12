@@ -109,7 +109,25 @@ echo "# HELP hostapd_client_info Connected client. name = /etc/wifi-exporter/dev
 echo "# TYPE hostapd_client_info gauge"
 printf '%s' "$info_lines"
 
-flush_timeouts=$(journalctl -k -b -q -o cat --no-pager -g "timed out to flush queues" 2>/dev/null | grep -c .)
+# 起動してからのカーネルログを毎回全部読むと、スクレイプ 1 回に 4 秒以上かかって vCPU を 1 本使い切る
+# （ログが増えるほど遅くなる。2026-11-12、pve-1 の温度が 30 秒周期で 12°C 上下していた原因）。
+# 前回読んだ位置（cursor）から先だけを数えて、起動ごとの合計を /run に持つ。
+# Prometheus の 2 レプリカが同時に来ても数え漏れ・二重計上しないようにロックする
+FLUSH_DIR=/run/wifi-exporter
+mkdir -p "$FLUSH_DIR"
+flush_timeouts=$(
+    flock 9
+    boot=$(cat /proc/sys/kernel/random/boot_id)
+    read -r saved_boot count < "$FLUSH_DIR/flush.count" 2>/dev/null
+    if [ "$saved_boot" != "$boot" ]; then
+        count=0
+        rm -f "$FLUSH_DIR/flush.cursor"
+    fi
+    new=$(journalctl -k -b -q -o cat --no-pager --cursor-file="$FLUSH_DIR/flush.cursor" 2>/dev/null | grep -c "timed out to flush queues")
+    count=$(( ${count:-0} + ${new:-0} ))
+    echo "$boot $count" > "$FLUSH_DIR/flush.count"
+    echo "$count"
+) 9> "$FLUSH_DIR/flush.lock"
 echo "# HELP wifi_flush_queue_timeouts_total Kernel 'timed out to flush queues' events since boot"
 echo "# TYPE wifi_flush_queue_timeouts_total counter"
 echo "wifi_flush_queue_timeouts_total{driver=\"rtw89_8852cu_git\"} ${flush_timeouts:-0}"
