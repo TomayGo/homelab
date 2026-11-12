@@ -138,6 +138,13 @@
       "enabled": false
     },
     {
+      "description": "snapshot-controller は ceph-csi の csi-snapshotter サイドカー（v8.5.0）と版を合わせる。上げるときは CRD と RBAC ごとファイルを入れ替えるので、イメージのタグだけを Renovate では上げない（k8s/apps/snapshot-controller/manifests/kustomization.yaml）",
+      "matchPackageNames": [
+        "registry.k8s.io/sig-storage/snapshot-controller"
+      ],
+      "enabled": false
+    },
+    {
       "description": "メジャーアップデートは Dependency Dashboard で承認してから PR を作る",
       "matchUpdateTypes": [
         "major"

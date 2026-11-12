@@ -13,6 +13,9 @@ resources:
 patches:
   # 使うのは夜間のバックアップのときだけなので 1 台にする（N-1 でメモリに余裕がない）。
   # ログは既定の --v=5 だと多いので 2 に下げる
+  # image はサイドカーと同じ版に固定する（upstream のタグ v8.5.0 の setup-snapshot-controller.yaml は v8.4.0 を指している）。
+  # setup-snapshot-controller.yaml のほうも同じ v8.5.0 にしてあり、Renovate はこの image を上げない（renovate.json）。
+  # 上げるときは CRD と RBAC ごとファイルを入れ替え、ここのタグとサイドカーを揃える
   - target:
       kind: Deployment
       name: snapshot-controller
