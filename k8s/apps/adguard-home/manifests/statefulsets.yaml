@@ -39,6 +39,11 @@ spec:
         image: adguard/adguardhome:v0.107.80
         imagePullPolicy: IfNotPresent
         name: adguardhome
+        env:
+        # HaGeZi PRO + TIF(full) で約170万ルール。フィルタ更新時は新旧のルールが一時的に並ぶので、
+        # 上限の手前で GC を強めて OOMKill を避ける
+        - name: GOMEMLIMIT
+          value: 1200MiB
         ports:
         - containerPort: 53
           name: dns-udp
@@ -52,9 +57,9 @@ spec:
         resources:
           requests:
             cpu: 50m
-            memory: 176Mi
-          limits:
             memory: 512Mi
+          limits:
+            memory: 1536Mi
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         volumeMounts:
@@ -164,6 +169,11 @@ spec:
         image: adguard/adguardhome:v0.107.80
         imagePullPolicy: IfNotPresent
         name: adguardhome
+        env:
+        # HaGeZi PRO + TIF(full) で約170万ルール。フィルタ更新時は新旧のルールが一時的に並ぶので、
+        # 上限の手前で GC を強めて OOMKill を避ける
+        - name: GOMEMLIMIT
+          value: 1200MiB
         ports:
         - containerPort: 53
           name: dns-udp
@@ -177,9 +187,9 @@ spec:
         resources:
           requests:
             cpu: 50m
-            memory: 176Mi
-          limits:
             memory: 512Mi
+          limits:
+            memory: 1536Mi
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
         volumeMounts:
