@@ -105,10 +105,12 @@ spec:
             - secretRef:
                 name: r2-backup
                 optional: true
+            # 小さい PVC のアプリ（netbox / ai / pricetracker）は 7 日間の最大で 71Mi 以下。
+            # 大きいもの（dns / monitoring）はアプリ側のパッチで上書きする
             resources:
               requests:
                 cpu: 100m
-                memory: 512Mi
+                memory: 128Mi
               limits:
                 cpu: '6'
                 memory: 1536Mi

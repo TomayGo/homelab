@@ -30,13 +30,13 @@ spec:
       plugin:
         requests:
           cpu: 10m
-          memory: 32Mi
+          memory: 64Mi
         limits:
           memory: 128Mi
       provisioner:
         requests:
           cpu: 10m
-          memory: 48Mi
+          memory: 64Mi
         limits:
           memory: 128Mi
       attacher:
@@ -54,7 +54,7 @@ spec:
       snapshotter:
         requests:
           cpu: 10m
-          memory: 48Mi
+          memory: 80Mi
         limits:
           memory: 128Mi
   nodePlugin:
@@ -62,7 +62,7 @@ spec:
       plugin:
         requests:
           cpu: 10m
-          memory: 96Mi
+          memory: 64Mi
         limits:
           memory: 256Mi
       registrar:

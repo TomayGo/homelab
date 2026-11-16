@@ -12,14 +12,14 @@ existingSecret: netbox-config
 superuser:
   existingSecret: netbox-superuser
 
-# 実測（7日）: p95 1150Mi / 最大 1276Mi。chart 既定の resourcesPreset medium は limit 1536Mi で近すぎる
+# 実測（2026-11 の 7 日間）: p95 1377Mi / 最大 1390Mi。chart 既定の resourcesPreset medium は limit 1536Mi で近すぎる
 resources:
   requests:
     cpu: 100m
-    memory: 1280Mi
+    memory: 1520Mi
     ephemeral-storage: 50Mi
   limits:
-    memory: 2Gi
+    memory: 2112Mi
     ephemeral-storage: 2Gi
 
 # media の PVC が RWO なのでローリング更新しない
