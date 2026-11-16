@@ -11,6 +11,12 @@ cluster:
       requests:
         cpu: 200m
         memory: 1440Mi
+  etcd:
+    extraArgs:
+      # etcd のメトリクスを http で出す（kube-prometheus-stack の kubeEtcd が scrape する）。
+      # 既定では client ポート（2379、mTLS）にしか出ていない。2026-11-16 の #86 のロールアウトで
+      # follower の ReadIndex が 13 秒止まったが、peer RTT や fsync の時系列がなく原因を絞れなかった
+      listen-metrics-urls: http://0.0.0.0:2381
   controllerManager:
     extraArgs:
       node-monitor-period: 2s
