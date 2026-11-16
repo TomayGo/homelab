@@ -44,6 +44,12 @@ spec:
               value: /src/prometheus-db
             - name: EXCLUDES
               value: wal chunks_head lock queries.active
+            # zstd -19 -T6 で 2026-11 の 7 日間の最大 1215Mi
+            resources:
+              requests:
+                memory: 1344Mi
+              limits:
+                memory: 1824Mi
             securityContext:
               capabilities:
                 drop:

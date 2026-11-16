@@ -47,7 +47,7 @@ spec:
         resources:
           requests:
             cpu: 10m
-            memory: 80Mi
+            memory: 48Mi
           limits:
             memory: 160Mi
         terminationMessagePath: /dev/termination-log
