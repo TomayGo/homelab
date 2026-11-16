@@ -355,6 +355,63 @@ additionalPrometheusRulesMap:
         for: 5m
         labels:
           severity: critical
+    # ノードが 1 台落ちたとき、移る Pod の memory request が残り 2 台に収まるか。
+    # chart 既定の KubeMemoryOvercommit は「全 Pod の request」と「最大ノードを除いた allocatable」を比べるので、
+    # 落ちても移らない Pod（DaemonSet と static Pod。1 台あたり約 1.3GiB）まで移る側に数えてしまう。
+    # ここでは落ちるノードごとに「残りのノードの allocatable − そこに縛られた request」を出し、最悪のノードで比べる
+    - name: capacity
+      rules:
+      # ノードに縛られた Pod（DaemonSet と static Pod）の memory request。ノードが落ちても移らない
+      - record: node:kube_pod_memory_requests_node_bound:sum
+        expr: |
+          sum by(node)(
+            kube_pod_container_resource_requests{resource="memory"}
+            * on(namespace, pod) group_left() max by(namespace, pod)(kube_pod_owner{owner_kind=~"DaemonSet|Node"})
+            * on(namespace, pod) group_left() max by(namespace, pod)(kube_pod_status_phase{phase=~"Pending|Running"} == 1)
+          )
+      # 各ノードで、移ってくる Pod に使える allocatable
+      - record: node:kube_node_memory_allocatable_movable:sum
+        expr: |
+          max by(node)(kube_node_status_allocatable{resource="memory"})
+          - (node:kube_pod_memory_requests_node_bound:sum or max by(node)(kube_node_status_allocatable{resource="memory"}) * 0)
+      # 移る Pod の memory request の合計。Job（夜間の PVC バックアップ）は数十分で終わり、N-1 の間は待たせてよいので数えない
+      - record: cluster:kube_pod_memory_requests_movable:sum
+        expr: |
+          sum(
+            (
+              kube_pod_container_resource_requests{resource="memory"}
+              * on(namespace, pod) group_left() max by(namespace, pod)(kube_pod_status_phase{phase=~"Pending|Running"} == 1)
+            )
+            unless on(namespace, pod) kube_pod_owner{owner_kind=~"DaemonSet|Node|Job"}
+          )
+      # N-1 では止まってよい分。Prometheus は 2 台が別ノード必須（hard anti-affinity）で、ノードが 2 台になると
+      # 片方は入りきらず Pending になる。残る 1 台と Thanos でクエリもアラートも続くので、1 台分を差し引く
+      - record: cluster:kube_pod_memory_requests_n1_sheddable:sum
+        expr: |
+          max(
+            sum by(pod)(kube_pod_container_resource_requests{resource="memory", namespace="monitoring", pod=~"prometheus-kube-prometheus-stack-prometheus-[0-9]+"})
+          )
+      # 最悪のノードが落ちたときの余り（負なら収まらない）
+      - record: cluster:kube_memory_n1_headroom:bytes
+        expr: |
+          sum(node:kube_node_memory_allocatable_movable:sum)
+          - max(node:kube_node_memory_allocatable_movable:sum)
+          - (cluster:kube_pod_memory_requests_movable:sum - (cluster:kube_pod_memory_requests_n1_sheddable:sum or vector(0)))
+      - alert: NodeFailureMemoryNotTolerated
+        annotations:
+          summary: ノードが 1 台落ちると、移る Pod の memory request が {{ $value | humanize1024 }}B 入りきらない
+          description: |
+            cluster:kube_memory_n1_headroom:bytes が負。DaemonSet・static Pod・Job と、Prometheus の 1 台分は除いて計算している。
+            直し方は、request を実測（7 日間の p95 × 1.1）に合わせ直す、要らない Pod を減らす、Talos VM のメモリを増やす、のどれか
+        expr: -cluster:kube_memory_n1_headroom:bytes > 0
+        # ロールアウト中は新旧の Pod が並んで一時的に増えるので、30 分続いたときだけ
+        for: 30m
+        labels:
+          severity: warning
+defaultRules:
+  disabled:
+    # 上の NodeFailureMemoryNotTolerated に置き換えた
+    KubeMemoryOvercommit: true
 alertmanager:
   alertmanagerSpec:
     # 2 台を必ず別ノードに置く（既定の soft では同じノードに並ぶことがある）
