@@ -76,7 +76,7 @@ spec:
   resources:
     requests:
       cpu: 50m
-      memory: 160Mi
+      memory: 112Mi
     limits:
       memory: 512Mi
   smartShutdownTimeout: 180
