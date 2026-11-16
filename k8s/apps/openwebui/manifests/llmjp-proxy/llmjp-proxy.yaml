@@ -36,7 +36,7 @@ spec:
             httpGet: {path: /healthz, port: http}
             periodSeconds: 30
           resources:
-            requests: {cpu: 10m, memory: 32Mi}
+            requests: {cpu: 10m, memory: 16Mi}
             limits: {memory: 128Mi}
           securityContext:
             allowPrivilegeEscalation: false

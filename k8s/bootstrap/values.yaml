@@ -55,7 +55,7 @@ server:
   resources:
     requests:
       cpu: 10m
-      memory: 48Mi
+      memory: 64Mi
     limits:
       memory: 128Mi
 
@@ -63,7 +63,7 @@ redis:
   resources:
     requests:
       cpu: 10m
-      memory: 48Mi
+      memory: 32Mi
     limits:
       memory: 128Mi
 
@@ -79,6 +79,6 @@ notifications:
   resources:
     requests:
       cpu: 10m
-      memory: 112Mi
+      memory: 48Mi
     limits:
       memory: 192Mi

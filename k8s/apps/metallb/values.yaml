@@ -10,7 +10,7 @@ speaker:
   resources:
     requests:
       cpu: 10m
-      memory: 64Mi
+      memory: 80Mi
     limits:
       memory: 128Mi
 frr-k8s:
@@ -26,7 +26,7 @@ frr-k8s:
       resources:
         requests:
           cpu: 10m
-          memory: 48Mi
+          memory: 32Mi
         limits:
           memory: 128Mi
     reloader:
@@ -47,6 +47,6 @@ frr-k8s:
       resources:
         requests:
           cpu: 10m
-          memory: 64Mi
+          memory: 32Mi
         limits:
           memory: 128Mi

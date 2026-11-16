@@ -41,6 +41,10 @@ spec:
               value: '6'
             - name: EXCLUDES
               value: conf/lost+found work/lost+found work/data/filters
+            # zstd -19 -T6 で 2026-11 の 7 日間の最大 874Mi
+            resources:
+              requests:
+                memory: 976Mi
             volumeMounts:
             - name: conf
               mountPath: /src/conf
