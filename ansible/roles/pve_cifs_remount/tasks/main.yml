@@ -1,0 +1,26 @@
+# CIFS のストレージ（pc-backups）が "Stale file handle" になったら付け直す（5 分ごと）。理由は files/cifs-stale-remount.sh
+- name: /usr/local/bin/cifs-stale-remount.sh
+  ansible.builtin.copy:
+    src: cifs-stale-remount.sh
+    dest: /usr/local/bin/cifs-stale-remount.sh
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: /etc/systemd/system/cifs-stale-remount.{service,timer}
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: install
+  vars:
+    systemd_unit_files:
+      - cifs-stale-remount.service
+      - cifs-stale-remount.timer
+    systemd_unit_notify: Restart cifs-stale-remount.timer
+
+- name: cifs-stale-remount.timer is enabled and running
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: enable
+  vars:
+    systemd_unit_name: cifs-stale-remount.timer
+    systemd_unit_state: started
