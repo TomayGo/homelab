@@ -1,0 +1,7 @@
+[Unit]
+Description=Remount PVE CIFS storages that have gone stale (Stale file handle)
+After=network-online.target pve-cluster.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/cifs-stale-remount.sh
