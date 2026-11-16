@@ -5,10 +5,21 @@ cluster:
     extraArgs:
       default-not-ready-toleration-seconds: "30"
       default-unreachable-toleration-seconds: "30"
+    # memory は 2026-11 の 7 日間の p95（1301Mi）× 1.1。既定の 512Mi では実際の半分も予約されない。
+    # cpu は既定値のまま（resources を書くと既定値ごと置き換わる）
+    resources:
+      requests:
+        cpu: 200m
+        memory: 1440Mi
   controllerManager:
     extraArgs:
       node-monitor-period: 2s
       node-monitor-grace-period: 16s
+    # memory は 2026-11 の 7 日間の p95（130Mi）× 1.1。既定は 256Mi
+    resources:
+      requests:
+        cpu: 50m
+        memory: 144Mi
 machine:
   install:
     # talosctl upgrade では書き換わらないので v1.13.6 のまま（qemu-guest-agent 入りの schematic）
