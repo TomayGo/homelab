@@ -424,10 +424,47 @@ additionalPrometheusRulesMap:
         for: 30m
         labels:
           severity: warning
+    # apiserver に、期限の近いクライアント証明書で認証した要求が来ているか。
+    # chart 既定の KubeClientCertificateExpiration は 1% 分位点で見るので、Talos 自身の短期証明書でも鳴る。
+    # Talos の machined（k8s.NodeApplyController）は、Node の label や annotation が変わるたびに、
+    # 有効期限 10 分の admin 証明書をその場で発行して自分の Node を更新する（CSI の再起動、ノードの再起動、Talos の更新など）。
+    # 2026-10-17〜11-16 の 30 日で 15 回 pending になった（firing は 0）。
+    # ここでは残り 30 分以下のバケット（le="1800.0"）を引いて、その短期証明書を除く。
+    # 本当に期限が近づいた長期の証明書は、残り 7 日から 30 分までを何日もかけて通るので、その間に必ず鳴る
+    - name: apiserver-client-certs
+      rules:
+      - alert: KubeClientCertificateExpiration
+        annotations:
+          summary: 期限まで 7 日を切ったクライアント証明書で、{{ $labels.instance }} の apiserver に要求が来ている
+          description: |
+            直近 1 時間に、残り 30 分〜7 日のクライアント証明書で認証された要求が {{ $value | humanize }} 件あった（Talos の 10 分証明書は除いている）。
+            誰の証明書かは、そのノードの audit ログ（/var/log/audit/kube/kube-apiserver.log）の user と userAgent で確かめる
+        expr: |
+          sum by(job, instance)(increase(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver", le="604800.0"}[1h]))
+          - sum by(job, instance)(increase(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver", le="1800.0"}[1h]))
+          > 0
+        for: 5m
+        labels:
+          severity: warning
+      - alert: KubeClientCertificateExpiration
+        annotations:
+          summary: 期限まで 24 時間を切ったクライアント証明書で、{{ $labels.instance }} の apiserver に要求が来ている
+          description: |
+            直近 1 時間に、残り 30 分〜24 時間のクライアント証明書で認証された要求が {{ $value | humanize }} 件あった（Talos の 10 分証明書は除いている）。
+            誰の証明書かは、そのノードの audit ログ（/var/log/audit/kube/kube-apiserver.log）の user と userAgent で確かめる
+        expr: |
+          sum by(job, instance)(increase(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver", le="86400.0"}[1h]))
+          - sum by(job, instance)(increase(apiserver_client_certificate_expiration_seconds_bucket{job="apiserver", le="1800.0"}[1h]))
+          > 0
+        for: 5m
+        labels:
+          severity: critical
 defaultRules:
   disabled:
     # 上の NodeFailureMemoryNotTolerated に置き換えた
     KubeMemoryOvercommit: true
+    # 上の apiserver-client-certs に置き換えた（Talos の短期証明書を除く）
+    KubeClientCertificateExpiration: true
 alertmanager:
   alertmanagerSpec:
     # 2 台を必ず別ノードに置く（既定の soft では同じノードに並ぶことがある）
