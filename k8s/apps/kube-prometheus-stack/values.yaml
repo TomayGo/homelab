@@ -557,13 +557,15 @@ grafana:
         memory: 96Mi
       limits:
         memory: 192Mi
-# Talos の etcd は Pod ではないので、ノードの IP を直に書く（Talos の cluster.etcd.extraArgs で 2381 に http で出している）。
-# Talos は etcd の設定を変えても etcd を再起動しない（talosctl からも再起動できない）。2381 を変えるときはノードの再起動が要る
+# etcd は prometheusSpec.additionalScrapeConfigs の job kube-etcd で取る。chart の Service / ServiceMonitor は使わない。
+# Talos の etcd は Pod ではないので endpoints を直に書くことになるが、chart が作る Endpoints は Argo CD の既定の
+# resource.exclusions（Endpoints / EndpointSlice）で同期されず、scrape 先が空のままになる。
+# kubeEtcd.enabled は残す（false にすると chart 既定の etcd のアラートも消える）
 kubeEtcd:
-  endpoints:
-  - 10.10.1.3
-  - 10.10.2.3
-  - 10.10.3.3
+  service:
+    enabled: false
+  serviceMonitor:
+    enabled: false
 kubeControllerManager:
   enabled: false
 kubeProxy:
@@ -602,6 +604,15 @@ prometheusOperator:
 prometheus:
   prometheusSpec:
     additionalScrapeConfigs:
+    # Talos の etcd。cluster.etcd.extraArgs の listen-metrics-urls で 2381 に http で出している（tofu/talos/patches/common.yaml）。
+    # Talos は etcd の設定を変えても etcd を再起動しない（talosctl からも再起動できない）ので、2381 を変えるときはノードの再起動が要る。
+    # job 名は chart 既定の etcd のアラート（job=~".*etcd.*"）に合わせる
+    - job_name: kube-etcd
+      static_configs:
+      - targets:
+        - 10.10.1.3:2381
+        - 10.10.2.3:2381
+        - 10.10.3.3:2381
     - job_name: adguard
       static_configs:
       - targets:
