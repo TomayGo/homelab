@@ -557,12 +557,13 @@ grafana:
         memory: 96Mi
       limits:
         memory: 192Mi
-# Talos の etcd は Pod ではないので、ノードの IP を直に書く（Talos の cluster.etcd.extraArgs で 2381 に http で出す）。
-# いまは空にしてある。Talos の設定（#91）は入れたが、etcd は Talos の API から再起動できず、ノードを再起動するまで
-# 2381 を開かない。先に endpoints を書くと TargetDown と etcdInsufficientMembers（critical）が鳴るので、
-# 3 ノードを再起動してから 10.10.1.3 / 10.10.2.3 / 10.10.3.3 を書き戻す
+# Talos の etcd は Pod ではないので、ノードの IP を直に書く（Talos の cluster.etcd.extraArgs で 2381 に http で出している）。
+# Talos は etcd の設定を変えても etcd を再起動しない（talosctl からも再起動できない）。2381 を変えるときはノードの再起動が要る
 kubeEtcd:
-  endpoints: []
+  endpoints:
+  - 10.10.1.3
+  - 10.10.2.3
+  - 10.10.3.3
 kubeControllerManager:
   enabled: false
 kubeProxy:
