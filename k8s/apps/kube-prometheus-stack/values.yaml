@@ -359,13 +359,21 @@ additionalPrometheusRulesMap:
     # chart 既定の KubeMemoryOvercommit は「全 Pod の request」と「最大ノードを除いた allocatable」を比べるので、
     # 落ちても移らない Pod（DaemonSet と static Pod。1 台あたり約 1.3GiB）まで移る側に数えてしまう。
     # ここでは落ちるノードごとに「残りのノードの allocatable − そこに縛られた request」を出し、最悪のノードで比べる
+    #
+    # request は 90 秒以内に scrape された series だけを使い、uid を落として (namespace, pod, container) ごとに 1 本にする。
+    # Prometheus 自身が再起動すると、その前に消えた Pod の series に staleness marker が付かず、最大 5 分残る。
+    # そのままだと StatefulSet の Pod（同じ名前で uid だけ違う）や消えた Pod を二重に数え、余りが一時的に負になる
+    # （2026-11-16 の #85 のロールアウトで Prometheus 1 台あたり 2816Mi のところ 4864Mi と数えた）。KSM の scrape は 30 秒ごと
     - name: capacity
       rules:
       # ノードに縛られた Pod（DaemonSet と static Pod）の memory request。ノードが落ちても移らない
       - record: node:kube_pod_memory_requests_node_bound:sum
         expr: |
           sum by(node)(
-            kube_pod_container_resource_requests{resource="memory"}
+            max by(namespace, pod, container, node)(
+              kube_pod_container_resource_requests{resource="memory"}
+              unless (time() - timestamp(kube_pod_container_resource_requests{resource="memory"}) > 90)
+            )
             * on(namespace, pod) group_left() max by(namespace, pod)(kube_pod_owner{owner_kind=~"DaemonSet|Node"})
             * on(namespace, pod) group_left() max by(namespace, pod)(kube_pod_status_phase{phase=~"Pending|Running"} == 1)
           )
@@ -379,7 +387,10 @@ additionalPrometheusRulesMap:
         expr: |
           sum(
             (
-              kube_pod_container_resource_requests{resource="memory"}
+              max by(namespace, pod, container, node)(
+                kube_pod_container_resource_requests{resource="memory"}
+                unless (time() - timestamp(kube_pod_container_resource_requests{resource="memory"}) > 90)
+              )
               * on(namespace, pod) group_left() max by(namespace, pod)(kube_pod_status_phase{phase=~"Pending|Running"} == 1)
             )
             unless on(namespace, pod) kube_pod_owner{owner_kind=~"DaemonSet|Node|Job"}
@@ -389,7 +400,12 @@ additionalPrometheusRulesMap:
       - record: cluster:kube_pod_memory_requests_n1_sheddable:sum
         expr: |
           max(
-            sum by(pod)(kube_pod_container_resource_requests{resource="memory", namespace="monitoring", pod=~"prometheus-kube-prometheus-stack-prometheus-[0-9]+"})
+            sum by(pod)(
+              max by(namespace, pod, container, node)(
+                kube_pod_container_resource_requests{resource="memory", namespace="monitoring", pod=~"prometheus-kube-prometheus-stack-prometheus-[0-9]+"}
+                unless (time() - timestamp(kube_pod_container_resource_requests{resource="memory", namespace="monitoring", pod=~"prometheus-kube-prometheus-stack-prometheus-[0-9]+"}) > 90)
+              )
+            )
           )
       # 最悪のノードが落ちたときの余り（負なら収まらない）
       - record: cluster:kube_memory_n1_headroom:bytes
