@@ -737,7 +737,9 @@ prometheus:
           cpu: 10m
           memory: 64Mi
         limits:
-          memory: 160Mi
+          # 160Mi では 30 日表示のダッシュボードで OOMKill された（2026-11-19）。
+          # #97 の後の再現テストでも 132Mi まで使った
+          memory: 256Mi
   service:
     additionalPorts:
     - name: grpc
