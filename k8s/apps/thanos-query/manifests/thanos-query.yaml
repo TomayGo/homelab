@@ -37,6 +37,16 @@ spec:
         - --query.replica-label=prometheus_replica
         # PVE exporter の job=pve は 3 台から同じ系列を取っている（kube-prometheus-stack の values.yaml）
         - --query.replica-label=pve_exporter
+        # 重いクエリで Prometheus と thanos-query が memory limit に張り付き、limit の内側で
+        # ページの読み直しを続けて etcd と同じディスクを詰まらせた（2026-11-19、30 日表示の
+        # PVE ダッシュボード 83 パネルを既定の 20 並列で両 Prometheus に流した）。
+        # 主な対策は同時実行数。あふれたクエリは --query.timeout（既定 2m）まで待つ。
+        - --query.max-concurrent=4
+        # 1 回の Series 要求の上限。全ダッシュボードの変数を「全部」にしたときの最大は
+        # 2756 系列（grafana_http_request_duration_seconds_bucket、15 日分）。
+        # samples は 30 秒間隔で 2756 系列 × 7 日 ≈ 5600 万が通る値にしてある。
+        - --store.limits.request-series=10000
+        - --store.limits.request-samples=60000000
         image: quay.io/thanos/thanos:v0.42.5
         imagePullPolicy: IfNotPresent
         name: thanos-query
@@ -52,7 +62,8 @@ spec:
             cpu: 10m
             memory: 112Mi
           limits:
-            memory: 288Mi
+            # 288Mi では 30 日表示のときに limit に張り付き、OOM にもならずに読み直しを続けた
+            memory: 512Mi
         terminationMessagePath: /dev/termination-log
         terminationMessagePolicy: File
       dnsPolicy: ClusterFirst
