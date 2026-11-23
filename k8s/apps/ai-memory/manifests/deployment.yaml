@@ -56,6 +56,10 @@ spec:
             - name: git-ssh
               mountPath: /etc/git-ssh
               readOnly: true
+            - name: git-passwd
+              mountPath: /etc/passwd
+              subPath: passwd
+              readOnly: true
             - name: tmp-git
               mountPath: /tmp
       containers:
@@ -157,6 +161,10 @@ spec:
             - name: git-ssh
               mountPath: /etc/git-ssh
               readOnly: true
+            - name: git-passwd
+              mountPath: /etc/passwd
+              subPath: passwd
+              readOnly: true
             - name: tmp-git
               mountPath: /tmp
       volumes:
@@ -172,6 +180,12 @@ spec:
             # fsGroup（1000）で読めるよう 0440。ssh 用には common.sh が /tmp に 0600 で写す
             defaultMode: 0440
         # basic-memory とサイドカーで /tmp を分ける（鍵の写しを basic-memory から見えなくする）
+        - name: git-passwd
+          configMap:
+            name: ai-memory-git
+            items:
+              - key: passwd
+                path: passwd
         - name: tmp-bm
           emptyDir:
             sizeLimit: 256Mi
