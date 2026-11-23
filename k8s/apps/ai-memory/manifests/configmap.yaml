@@ -1,0 +1,61 @@
+# ノートの git 同期。正本は GitHub の TomayGo/ai-memory（private）
+# - git-init.sh：起動時に 1 回。PVC に作業コピーが無ければ clone、あれば pull
+# - git-sync.sh：サイドカーで常駐。SYNC_INTERVAL 秒ごとに commit → pull --rebase → push
+# Secret のファイルは 0440（fsGroup で読むため）で、ssh は鍵として受け付けない。/tmp に 0600 で写してから使う
+# known_hosts は GitHub の公開値（docs.github.com の SSH key fingerprints）。ed25519 だけ置く
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ai-memory-git
+  namespace: ai-memory
+data:
+  known_hosts: |
+    github.com ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOMqqnkVzrm0SdG6UOoqKLsabgH5C9okWi0dh2l9GKJl
+  common.sh: |
+    set -eu
+    mkdir -p /tmp/ssh
+    install -m 0600 /etc/git-ssh/id_ed25519 /tmp/ssh/id_ed25519
+    export HOME=/tmp
+    export GIT_SSH_COMMAND="ssh -i /tmp/ssh/id_ed25519 -o IdentitiesOnly=yes -o UserKnownHostsFile=/etc/git-config/known_hosts -o StrictHostKeyChecking=yes"
+    git config --global user.name "ai-memory-sync"
+    git config --global user.email "ai-memory-sync@users.noreply.github.com"
+    git config --global pull.rebase true
+    git config --global rebase.autoStash true
+  git-init.sh: |
+    . /etc/git-config/common.sh
+    mkdir -p /data/notes /data/state /data/cache
+    if [ ! -d /data/notes/.git ]; then
+      # git でない中身が残っているなら、手で片付けるまで止める（lost+found は /data 直下なのでここには来ない）
+      if [ -n "$(ls -A /data/notes)" ]; then
+        echo "/data/notes に git 以外のファイルがある。中身を確認してから消すこと" >&2
+        exit 1
+      fi
+      git clone "$GIT_REPO" /data/notes
+    else
+      # 前回の Pod が push できずに落ちていても、ここで取り込み直す
+      git -C /data/notes add -A
+      git -C /data/notes diff --cached --quiet || git -C /data/notes commit -q -m "auto: recovered at start $(date -u +%FT%TZ)"
+      git -C /data/notes pull -q || echo "pull に失敗。サイドカーで再試行する" >&2
+    fi
+  git-sync.sh: |
+    . /etc/git-config/common.sh
+    cd /data/notes
+    while true; do
+      sleep "${SYNC_INTERVAL:-300}"
+      git add -A
+      if ! git diff --cached --quiet; then
+        git commit -q -m "auto: $(date -u +%FT%TZ)"
+      fi
+      # リモートがまだ空（初回 push 前）なら、上流を作るだけにする
+      if ! git rev-parse -q --verify '@{u}' >/dev/null; then
+        git push -q -u origin HEAD || echo "$(date -u +%FT%TZ) 初回の push に失敗" >&2
+        continue
+      fi
+      if ! git pull -q; then
+        # 競合はここでは解かない。rebase を戻して次の周期に回し、ログで気づけるようにする
+        git rebase --abort 2>/dev/null || true
+        echo "$(date -u +%FT%TZ) pull に失敗（競合か通信断）" >&2
+        continue
+      fi
+      git push -q || echo "$(date -u +%FT%TZ) push に失敗" >&2
+    done

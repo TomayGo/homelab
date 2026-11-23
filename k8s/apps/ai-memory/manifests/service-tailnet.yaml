@@ -1,0 +1,21 @@
+# tailnet 公開（ai-memory.ayu-mamba.ts.net）。ProxyGroup+Ingress は upstream のバグで使えないので expose 方式
+# Basic Memory の HTTP トランスポートには認証が無い。到達できる範囲は tailnet の ACL だけで絞る
+# MCP のエンドポイントは http://ai-memory.ayu-mamba.ts.net/mcp
+# インターネットへ出す（Funnel）ときは、この Service ではなく OAuth の前段を挟んだ別経路を作る
+apiVersion: v1
+kind: Service
+metadata:
+  name: ai-memory-tailnet
+  namespace: ai-memory
+  annotations:
+    tailscale.com/expose: "true"
+    tailscale.com/hostname: ai-memory
+spec:
+  type: ClusterIP
+  selector:
+    app: ai-memory
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP
