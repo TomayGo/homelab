@@ -1,0 +1,180 @@
+# 共有メモリ（Basic Memory）。Claude Code / Claude Desktop / Antigravity から MCP（streamable-http）で読み書きする
+# ノートは Markdown で、TomayGo/ai-memory（private）と git で同期する。技術的なコンテキストだけを置き、個人的な情報は入れない
+# SQLite の索引は PVC 上にあり、書き込みは 1 プロセスに限る。レプリカは常に 1
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: ai-memory
+  namespace: ai-memory
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: ai-memory
+  template:
+    metadata:
+      labels:
+        app: ai-memory
+    spec:
+      # 終了時にサイドカーの最後の commit/push を待つ余裕はない（sleep 中に止まる）。
+      # 取りこぼした変更は次の起動時に git-init が commit して pull する
+      terminationGracePeriodSeconds: 30
+      securityContext:
+        runAsNonRoot: true
+        # 公式イメージの appuser（UID/GID 1000）。サイドカーも揃えて、作業コピーの所有者を 1 つにする
+        runAsUser: 1000
+        runAsGroup: 1000
+        fsGroup: 1000
+        seccompProfile:
+          type: RuntimeDefault
+      initContainers:
+        - name: git-init
+          image: alpine/git:v2.54.1
+          command: ["/bin/sh", "/etc/git-config/git-init.sh"]
+          env:
+            - name: GIT_REPO
+              value: git@github.com:TomayGo/ai-memory.git
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: git-config
+              mountPath: /etc/git-config
+              readOnly: true
+            - name: git-ssh
+              mountPath: /etc/git-ssh
+              readOnly: true
+            - name: tmp-git
+              mountPath: /tmp
+      containers:
+        - name: basic-memory
+          image: ghcr.io/basicmachines-co/basic-memory:1.0.0
+          command:
+            - basic-memory
+            - mcp
+            - --transport
+            - streamable-http
+            - --host
+            - 0.0.0.0
+            - --port
+            - "8000"
+          ports:
+            - name: http
+              containerPort: 8000
+          env:
+            # プロジェクト main = /data/notes（git の作業コピー）
+            - name: BASIC_MEMORY_HOME
+              value: /data/notes
+            - name: BASIC_MEMORY_PROJECT_ROOT
+              value: /data
+            - name: BASIC_MEMORY_DEFAULT_PROJECT
+              value: main
+            # 設定（config.json）、SQLite の索引、ログ
+            - name: BASIC_MEMORY_CONFIG_DIR
+              value: /data/state
+            - name: BASIC_MEMORY_SEMANTIC_EMBEDDING_CACHE_DIR
+              value: /data/cache/fastembed
+            # ノートはほぼ日本語。既定の bge-small-en はベクトルが当てにならないので、検索の既定は全文検索にする
+            # （日本語は Basic Memory 側の n-gram で分かち書きなしに引ける）。
+            # 意味検索を使うなら SEMANTIC_EMBEDDING_MODEL を多言語 MiniLM にして、SEMANTIC_MIN_SIMILARITY を 0.50 に下げる。
+            # その場合メモリが約 450 MiB 増えるので、pve-1 のメモリ増設（KubeMemoryOvercommit）の後にする
+            - name: BASIC_MEMORY_DEFAULT_SEARCH_TYPE
+              value: text
+            - name: BASIC_MEMORY_LOG_LEVEL
+              value: INFO
+            - name: HOME
+              value: /tmp
+            - name: TZ
+              value: Asia/Tokyo
+          # MCP のエンドポイントは GET で 4xx を返すので、HTTP のプローブではなく TCP で見る
+          readinessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 30
+            failureThreshold: 4
+          # 起動時の索引作成とモデルの読み込み（初回はダウンロード）を待つ
+          startupProbe:
+            tcpSocket:
+              port: http
+            periodSeconds: 10
+            failureThreshold: 30
+          # 値は仮置き。動かしてから 7 日間の p95 に合わせる
+          resources:
+            requests:
+              cpu: 100m
+              memory: 384Mi
+            limits:
+              memory: 768Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: tmp-bm
+              mountPath: /tmp
+        - name: git-sync
+          image: alpine/git:v2.54.1
+          command: ["/bin/sh", "/etc/git-config/git-sync.sh"]
+          env:
+            - name: SYNC_INTERVAL
+              value: "300"
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: git-config
+              mountPath: /etc/git-config
+              readOnly: true
+            - name: git-ssh
+              mountPath: /etc/git-ssh
+              readOnly: true
+            - name: tmp-git
+              mountPath: /tmp
+      volumes:
+        - name: data
+          persistentVolumeClaim:
+            claimName: ai-memory-data
+        - name: git-config
+          configMap:
+            name: ai-memory-git
+        - name: git-ssh
+          secret:
+            secretName: ai-memory-git-deploy-key
+            # fsGroup（1000）で読めるよう 0440。ssh 用には common.sh が /tmp に 0600 で写す
+            defaultMode: 0440
+        # basic-memory とサイドカーで /tmp を分ける（鍵の写しを basic-memory から見えなくする）
+        - name: tmp-bm
+          emptyDir:
+            sizeLimit: 256Mi
+        - name: tmp-git
+          emptyDir:
+            sizeLimit: 16Mi

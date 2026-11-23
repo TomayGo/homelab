@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: ai-memory
+  namespace: argocd
+spec:
+  project: default
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: ai-memory
+  source:
+    repoURL: git@github.com:TomayGo/homelab.git
+    targetRevision: main
+    path: k8s/apps/ai-memory/manifests
+  syncPolicy:
+    automated:
+      selfHeal: true
+      prune: false
+    syncOptions:
+    - ServerSideApply=true

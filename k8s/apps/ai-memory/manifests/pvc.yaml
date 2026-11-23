@@ -1,0 +1,15 @@
+# /data/notes：ノート本体（TomayGo/ai-memory の作業コピー。正本は GitHub 側）
+# /data/state：Basic Memory の設定と SQLite の索引（ノートから作り直せる）
+# /data/cache：FastEmbed のモデル（bge-small-en で約 70 MB、多言語 MiniLM にすると約 250 MB）
+# 全損時は GitHub から clone し直して索引を作り直すので、R2 へのバックアップ（pvc-backup）は付けない
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ai-memory-data
+  namespace: ai-memory
+spec:
+  accessModes: ["ReadWriteOnce"]
+  storageClassName: ceph-rbd
+  resources:
+    requests:
+      storage: 5Gi

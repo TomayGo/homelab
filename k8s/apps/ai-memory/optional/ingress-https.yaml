@@ -1,0 +1,20 @@
+# 予備。MCP クライアントが http:// の URL を受け付けないとき（Antigravity が https を求めた場合など）だけ使う
+# Tailscale の L7 Ingress（ProxyGroup なしの単独プロキシ）で、ts.net の証明書付き https にする
+# https://ai-memory-tls.ayu-mamba.ts.net/mcp
+# 使うときは manifests/ にコピーして kustomization.yaml の resources に足す
+# ProxyGroup 版の Ingress は upstream のバグで使えない（openwebui.yaml のコメント）。この単独版が動くかは未検証
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ai-memory-tls
+  namespace: ai-memory
+spec:
+  ingressClassName: tailscale
+  defaultBackend:
+    service:
+      name: ai-memory-tailnet
+      port:
+        number: 80
+  tls:
+    - hosts:
+        - ai-memory-tls

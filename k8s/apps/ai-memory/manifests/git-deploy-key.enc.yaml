@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: Secret
+metadata:
+    name: ai-memory-git-deploy-key
+    namespace: ai-memory
+type: Opaque
+stringData:
+    id_ed25519: ENC[AES256_GCM,data:1uCu22NYiozYd2Pyy1Ba6rzN5UgkcpkjmMjNSIVNK3gMO3exXp2EWmdJw/mPDjVrxOZJ3kjFEym9uhrFH5k3MMvmRb2WFWiNvvLI8odlygiwuuRQ0G/7QO2GQyNeegSd/8Vpx0soLawL1N7qa00UpPQYC3XLMvcTiF8wrInX+r/L664ile6G3mR8COJ9AYowjFO3OHOYhT5O6dHWh4Y8KFt4xgaSZodSqQoFmfNqcKAbte+y/AdfjBgRxnyirlhea7H5Cbm0sIZWZ3O85z35NLk+/+LBpYmYxv7brtTpvfD6kpTKPE5+Smw4LA1pKIYYilyKfqEJvq7EsVx7Q5Y3jVEZVOA4rOkSK3pTZGZXUU38IrJnPt1DdX6H70I0inmfWOrIN58kNFmmHnc4yK6uyjqUDOn6hmeyTwI6lWJGEYBPMO6355nVyOMif5tWjx/N08FWooCNThqsgid2yYG/E1cZOl9hBGCSZbajrlM2KjNYQyf185nG3gjrSZtl2lZ/raVwvazSTEsj+T8VMaIkYJtgbXT2K77H1FXD,iv:ps+paEi1s+AN1sQnZl6pgRXjywFFVZ9HAGw8X2ZM4p8=,tag:q5LuAV6GPX4MUwhp7YS98g==,type:str]
+sops:
+    age:
+        - enc: |
+            -----BEGIN AGE ENCRYPTED FILE-----
+            YWdlLWVuY3J5cHRpb24ub3JnL3YxCi0+IFgyNTUxOSA0VFJXYWduemhmblFhbEtj
+            bERQSUphL1NIelFBMHkvMnBLbm0wRlJFK2dvCkU4bHg4RzU4K1A2aytnbmtTOWpz
+            di9DU2JNZ3k4R3RPMjl0TkZrQlhsSlkKLS0tIHp6Sk1OZUZ2Y0IxQlNoemVIVHJq
+            c1pkVTVlbG5lM2Q2L3VoS3NQdGkxWVUKCr+QM/xI6KTvbM/xsOwDeNkf4bY9+m8e
+            cr8lYozLuwL65Rw9dKGEE6uHaTfYV8f3LPYEc5fwtqATHacoVaBG+w==
+            -----END AGE ENCRYPTED FILE-----
+          recipient: age16jr9chq7kfpyg9da9gc0njmtqs7sgmrxmt99wlr3q7efg59xg9mqlq57rz
+    encrypted_regex: ^(data|stringData)$
+    lastmodified: "2026-11-23T19:34:40Z"
+    mac: ENC[AES256_GCM,data:3KE1b24ux0LF4jqpdx1ZkhGCbjyLp8Hx0jK80ZD+Uc29FKeNIWLonLQVxXAgP9g/fHxHk8HvRwVje+2x7fyIKqGjgX35qdgWpkWL4bFflcFNxetm0ob69ZXBOWMY+2DQmOdkoPPX7oezvaf/SV46+DprKn/t44aqHoCutLew4Vs=,iv:yfcv2zlXdKEZQchG1JJGOK9a7wbEaM+jLzgNy6+wKE8=,tag:p91J1DKK1d5qAacXOpT29Q==,type:str]
+    version: 3.13.3
