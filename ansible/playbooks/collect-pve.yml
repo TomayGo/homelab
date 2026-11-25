@@ -41,6 +41,14 @@
       - /etc/systemd/system/superio-fan-metrics.service
       - /etc/systemd/system/superio-fan-metrics.timer
       - /etc/systemd/system/superio-fan-control.service
+      # pve_gdrive_backup（秘密情報を含む rclone.env / rclone.conf は回収しない）
+      - /usr/local/sbin/lvm-thinpool-metrics.sh
+      - /etc/systemd/system/lvm-thinpool-metrics.service
+      - /etc/systemd/system/lvm-thinpool-metrics.timer
+      - /usr/local/sbin/vzdump-gdrive-hook.sh
+      - /usr/local/sbin/pve-gdrive-upload.sh
+      - /etc/systemd/system/pve-gdrive-upload.service
+      - /etc/systemd/system/pve-gdrive-upload.timer
   tasks:
     - name: Fetch files
       ansible.builtin.fetch:

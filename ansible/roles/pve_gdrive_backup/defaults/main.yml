@@ -1,0 +1,15 @@
+# Renovate が GitHub Releases（rclone/rclone）を追う（renovate.json）
+rclone_version: "1.76.0"
+
+# pve/data（local-lvm thin pool, 約794GiB。ceph-osd 384GiB が同居）から切るステージング兼
+# 直近1世代保持用の thin LV。pve-2 の最悪値（384 + 128 + snap 128 + 96 = 736GiB）でも pool を超えない上限
+pve_gdrive_backup_stage_vg: "pve"
+pve_gdrive_backup_stage_thinpool: "data"
+pve_gdrive_backup_stage_lv: "vzdump-stage"
+pve_gdrive_backup_stage_size: "96g"
+pve_gdrive_backup_stage_mount: "/var/lib/vz-stage"
+
+# Google Drive への転送設定（3ノード同時実行でも上り回線を埋めないよう帯域制限をかける）
+pve_gdrive_backup_folder: "proxmox-vzdump"
+pve_gdrive_backup_keep_last: 3
+pve_gdrive_backup_bwlimit: "25M"

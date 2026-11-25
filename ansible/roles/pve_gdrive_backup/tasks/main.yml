@@ -1,0 +1,181 @@
+# vzdump のローカルステージング領域（pve/vzdump-stage）と、Google Drive（rclone crypt）への非同期退避。
+# 認証情報（group_vars/pve/gdrive.sops.yaml）は scripts/enable-gdrive-backup.sh で作る。
+
+- name: Check installed rclone version
+  ansible.builtin.command: /usr/bin/rclone version
+  register: pve_gdrive_backup_rclone_installed
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Install rclone {{ rclone_version }}
+  when: ("rclone v" + rclone_version) not in (pve_gdrive_backup_rclone_installed.stdout_lines | first | default(""))
+  block:
+    - name: Download rclone .deb {{ rclone_version }}
+      ansible.builtin.get_url:
+        url: "https://github.com/rclone/rclone/releases/download/v{{ rclone_version }}/rclone-v{{ rclone_version }}-linux-amd64.deb"
+        checksum: "sha256:https://github.com/rclone/rclone/releases/download/v{{ rclone_version }}/SHA256SUMS"
+        dest: "/tmp/rclone-v{{ rclone_version }}-linux-amd64.deb"
+        owner: root
+        group: root
+        mode: "0644"
+
+    - name: Report instead of installing (check mode) rclone {{ rclone_version }}
+      ansible.builtin.debug:
+        msg: "would install rclone {{ rclone_version }}"
+      changed_when: true
+      when: ansible_check_mode
+
+    - name: Install rclone .deb
+      when: not ansible_check_mode
+      ansible.builtin.apt:
+        deb: "/tmp/rclone-v{{ rclone_version }}-linux-amd64.deb"
+
+    - name: Remove downloaded rclone .deb
+      when: not ansible_check_mode
+      ansible.builtin.file:
+        path: "/tmp/rclone-v{{ rclone_version }}-linux-amd64.deb"
+        state: absent
+
+- name: Create thin LV {{ pve_gdrive_backup_stage_vg ~ '/' ~ pve_gdrive_backup_stage_lv ~ ' (' ~ pve_gdrive_backup_stage_size ~ ')' }}
+  community.general.lvol:
+    vg: "{{ pve_gdrive_backup_stage_vg }}"
+    thinpool: "{{ pve_gdrive_backup_stage_thinpool }}"
+    lv: "{{ pve_gdrive_backup_stage_lv }}"
+    size: "{{ pve_gdrive_backup_stage_size }}"
+    shrink: false
+
+# 予約ブロック 5% は不要（root 専用の一時置き場）。初回の --check では LV がまだ無いため失敗を無視する
+- name: Format ext4 (-m 0) on {{ pve_gdrive_backup_stage_vg ~ '/' ~ pve_gdrive_backup_stage_lv }}
+  community.general.filesystem:
+    dev: "/dev/{{ pve_gdrive_backup_stage_vg }}/{{ pve_gdrive_backup_stage_lv }}"
+    fstype: ext4
+    opts: -m 0
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Create stage mount point {{ pve_gdrive_backup_stage_mount }}
+  ansible.builtin.file:
+    path: "{{ pve_gdrive_backup_stage_mount }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+# nofail を付け、万一この LV に異常があっても PVE ホストの起動を止めない（fencing 有効クラスタ）
+- name: Mount {{ pve_gdrive_backup_stage_mount }}
+  ansible.posix.mount:
+    path: "{{ pve_gdrive_backup_stage_mount }}"
+    src: "/dev/{{ pve_gdrive_backup_stage_vg }}/{{ pve_gdrive_backup_stage_lv }}"
+    fstype: ext4
+    opts: defaults,noatime,nofail
+    state: mounted
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Create directories for staging dump, config, and state
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "{{ item.mode }}"
+  loop:
+    - { path: "{{ pve_gdrive_backup_stage_mount }}/dump", mode: "0755" }
+    - { path: "/etc/pve-gdrive-backup", mode: "0700" }
+    - { path: "/var/lib/pve-gdrive-backup", mode: "0700" }
+    - { path: "/var/lib/pve-gdrive-backup/uploaded", mode: "0700" }
+    - { path: "/var/lib/pve-gdrive-backup/vmids", mode: "0700" }
+
+- name: Deploy Google Drive rclone config when SOPS credentials are present
+  when: gdrive_backup_client_id is defined
+  block:
+    - name: Render /etc/pve-gdrive-backup/rclone.env
+      ansible.builtin.template:
+        src: rclone.env.j2
+        dest: /etc/pve-gdrive-backup/rclone.env
+        owner: root
+        group: root
+        mode: "0600"
+      no_log: true
+
+    # rclone は OAuth の access_token を更新するたびに rclone.conf を書き換える。
+    # SOPS 側の初期トークン（seed）が変わったときだけ rclone.conf を上書きし、普段は触らない
+    - name: Read current seed token hash
+      ansible.builtin.slurp:
+        src: /var/lib/pve-gdrive-backup/seed.sha256
+      register: pve_gdrive_backup_seed_hash_file
+      changed_when: false
+      failed_when: false
+      check_mode: false
+
+    - name: Seed /var/lib/pve-gdrive-backup/rclone.conf when seed token changed
+      when: (pve_gdrive_backup_seed_hash_file.content | default('') | b64decode | trim) != (gdrive_backup_seed_token | hash('sha256'))
+      block:
+        - name: Write initial /var/lib/pve-gdrive-backup/rclone.conf
+          ansible.builtin.template:
+            src: rclone.conf.j2
+            dest: /var/lib/pve-gdrive-backup/rclone.conf
+            owner: root
+            group: root
+            mode: "0600"
+          no_log: true
+
+        - name: Record seed token hash
+          ansible.builtin.copy:
+            content: "{{ gdrive_backup_seed_token | hash('sha256') }}\n"
+            dest: /var/lib/pve-gdrive-backup/seed.sha256
+            owner: root
+            group: root
+            mode: "0600"
+
+- name: Install scripts for LVM thinpool metrics, vzdump hook, and Drive uploader
+  ansible.builtin.copy:
+    src: "{{ item }}"
+    dest: "/usr/local/sbin/{{ item }}"
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - lvm-thinpool-metrics.sh
+    - vzdump-gdrive-hook.sh
+    - pve-gdrive-upload.sh
+
+- name: Install lvm-thinpool-metrics service and timer
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: install
+  vars:
+    systemd_unit_files:
+      - lvm-thinpool-metrics.service
+      - lvm-thinpool-metrics.timer
+    systemd_unit_notify: Restart lvm-thinpool-metrics.timer
+
+- name: Install pve-gdrive-upload service and timer
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: install
+  vars:
+    systemd_unit_files:
+      - pve-gdrive-upload.service
+      - pve-gdrive-upload.timer
+    systemd_unit_notify:
+      - Reload systemd for pve-gdrive-upload
+      - Restart pve-gdrive-upload.timer
+
+- name: Flush handlers before enabling timers
+  ansible.builtin.meta: flush_handlers
+
+- name: Ensure lvm-thinpool-metrics.timer is enabled and running
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: enable
+  vars:
+    systemd_unit_name: lvm-thinpool-metrics.timer
+    systemd_unit_state: started
+
+- name: Ensure pve-gdrive-upload.timer is enabled and running
+  ansible.builtin.import_role:
+    name: systemd_unit
+    tasks_from: enable
+  vars:
+    systemd_unit_name: pve-gdrive-upload.timer
+    systemd_unit_state: started

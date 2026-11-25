@@ -1,0 +1,11 @@
+[Unit]
+Description=Upload local vzdump archives to Google Drive (rclone crypt)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/pve-gdrive-upload.sh
+Nice=10
+IOSchedulingClass=best-effort
+IOSchedulingPriority=7
