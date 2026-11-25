@@ -80,8 +80,10 @@ DUMP_DIR="${STAGE_MOUNT}/dump"
 KEEP_LAST="${PVE_GDRIVE_KEEP_LAST:-3}"
 BWLIMIT="${PVE_GDRIVE_BWLIMIT:-25M}"
 
-# vzdump の実行中（/var/run/vzdump.lock がロック中）は触らない。終われば job-end から再度呼ばれる
-if [ -e /var/run/vzdump.lock ] && ! flock -n /var/run/vzdump.lock true 2>/dev/null; then
+# vzdump の実行中（/var/run/vzdump.lock がロック中）は触らない。
+# job-end 直後は vzdump が最後の通知処理で 1 秒ほどロックを握ったままのことがあるため最大 30 秒待つ。
+# 本当にバックアップ中なら 30 秒で抜けて job-end からの再起動に任せる
+if [ -e /var/run/vzdump.lock ] && ! flock -w 30 /var/run/vzdump.lock true 2>/dev/null; then
   logger -t pve-gdrive-upload "vzdump is currently running, deferring until job-end"
   exit 0
 fi
