@@ -58,14 +58,45 @@ tmpconf="$tmpdir/rclone.conf"
 
 echo
 echo "=== OAuth トークン取得（スコープ: drive.file） ==="
-echo "表示される 'rclone authorize \"drive\" \"...\"' を、ブラウザのある手元 PC で実行し、"
-echo "出力されたトークン文字列を config_token> に貼り付けてください。"
+resp=$(RCLONE_CONFIG="$tmpconf" rclone config create gdrive drive \
+  "client_id=$CLIENT_ID" \
+  "client_secret=$CLIENT_SECRET" \
+  scope=drive.file \
+  config_is_local=false \
+  --non-interactive)
+
+state=$(printf '%s' "$resp" | python3 -I -c 'import json,sys; print(json.load(sys.stdin).get("State",""))')
+help_txt=$(printf '%s' "$resp" | python3 -I -c 'import json,sys; print((json.load(sys.stdin).get("Option") or {}).get("Help",""))')
+if [ -z "$state" ]; then
+  echo "rclone の OAuth 状態を取得できませんでした: $resp" >&2
+  exit 1
+fi
+
+printf '%s\n' "$help_txt"
+echo "※手元 PC に rclone が無い場合は、別ターミナルで 'ssh -L 53682:127.0.0.1:53682 root@192.168.1.79' を張り、"
+echo "  pve-1 上で上のコマンド末尾に '--auth-no-open-browser' を付けて実行し、出た URL をブラウザで開いても取得できます。"
 echo
-RCLONE_CONFIG="$tmpconf" rclone config create gdrive drive \
-  client_id "$CLIENT_ID" \
-  client_secret "$CLIENT_SECRET" \
-  scope drive.file \
-  config_is_local false
+printf 'config_token（rclone authorize が出力した文字列）: '
+read -r AUTH_TOKEN
+if [ -z "$AUTH_TOKEN" ]; then
+  echo "config_token が空です。" >&2
+  exit 1
+fi
+
+resp2=$(RCLONE_CONFIG="$tmpconf" rclone config update gdrive \
+  --continue --state "$state" --result "$AUTH_TOKEN" --non-interactive)
+err2=$(printf '%s' "$resp2" | python3 -I -c 'import json,sys; print(json.load(sys.stdin).get("Error",""))')
+if [ -n "$err2" ]; then
+  echo "OAuth トークンの反映に失敗しました: $err2" >&2
+  exit 1
+fi
+
+state2=$(printf '%s' "$resp2" | python3 -I -c 'import json,sys; print(json.load(sys.stdin).get("State",""))')
+if [ -n "$state2" ]; then
+  RCLONE_CONFIG="$tmpconf" rclone config update gdrive \
+    --continue --state "$state2" --result false --non-interactive >/dev/null
+fi
+unset AUTH_TOKEN
 
 SEED_TOKEN=$(awk -F ' = ' '$1 == "token" { print substr($0, index($0, "=") + 2) }' "$tmpconf")
 if [ -z "$SEED_TOKEN" ]; then
