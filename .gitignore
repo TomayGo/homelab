@@ -22,9 +22,10 @@ generated.tf
 
 # Ansible
 ansible/collected/
+ansible/collections/
 *.retry
+__pycache__/
 
 # エディタ等
 .DS_Store
 *.swp
-ansible/collections/

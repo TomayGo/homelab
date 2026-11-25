@@ -6,17 +6,18 @@
 
 - ageの秘密鍵（パスワードマネージャ）→ `~/.config/sops/age/keys.txt`
 - OpenTofuのstate暗号化パスフレーズ（パスワードマネージャ）→ `TF_VAR_state_passphrase`
+- Googleアカウント（2段階認証手段を含む）と`rclone crypt`のパスフレーズ2種（`ansible/group_vars/pve/gdrive.sops.yaml`をage鍵で復号しても取り出せるが、パスワードマネージャにも独立保管しておく）
 - GitHubの認証情報（`TomayGo/homelab`をcloneするため）
-- vzdump：PVEストレージ`pc-backups`（`//desktop-6vkqmqj.ayu-mamba.ts.net/Backup`）の`dump/`
-  - 定期ジョブ`backup-every3d`で、101、103、106、500を3日ごとに取っている（3世代。`docs/manual-ops.md`）。Talos VMは取っていない
+- vzdump：Google Driveの`proxmox-vzdump/dump/`（`rclone crypt`で暗号化済み。通常時は各ノードの`local-stage` `/var/lib/vz-stage/dump/`にも直近1世代がある）
+  - 定期ジョブ`backup-every3d`で、101、103、106、500を3日ごとに取っている（ローカル1世代＋Google Drive 3世代。`docs/manual-ops.md`）。Talos VMは取っていない
 
 ## 手順
 
 | 順序 | 作業 | 使うもの |
 |---|---|---|
-| 1 | PVE 9をインストールし、LANのIP（.79/.80/.81）とホスト名を設定する。Ansibleでネットワーク、FRR、sysctl、USB4メッシュ、exporterを適用する | `ansible/`（`playbooks/pve.yml`。1台ずつ） |
+| 1 | PVE 9をインストールし、LANのIP（.79/.80/.81）とホスト名を設定する。Ansibleでネットワーク、FRR、sysctl、USB4メッシュ、exporter、`pve_gdrive_backup`を適用する | `ansible/`（`playbooks/pve.yml`。1台ずつ） |
 | 2 | `pvecm create` / `pvecm add`でクラスタを組み、Cephを作り直す。プール`ceph-pool`、`k8s-rbd` | `docs/manual-ops.md` |
-| 3 | PVEストレージ`pc-backups`（CIFS）を追加し、一点物のゲスト（103 ap、106 mc、101 dtv、500 discordbotsなど）をvzdumpから戻す。HAは`ansible/playbooks/ha.yml` | vzdump、`ansible/guest-configs/` |
+| 3 | PVEストレージ`local-stage`（`/var/lib/vz-stage`）を追加し、`rclone copy gdrive_crypt:...`でGoogle Driveからvzdumpアーカイブを落として一点物のゲスト（103 ap、106 mc、101 dtv、500 discordbots）を戻す。HAは`ansible/playbooks/ha.yml` | `docs/manual-ops.md`、`ansible/guest-configs/` |
 | 4 | Talos VMを作り直す（`prevent_destroy`は、VMが存在しない状態からの作成を妨げない） | `tofu/proxmox/` |
 | 5 | Talosの設定を適用し、1台目で`talosctl bootstrap`を手で実行する | `tofu/talos/`（secretsは`secrets.enc.yaml`からも戻せる） |
 | 6 | Argo CDを手で入れ、ルートのApplicationを作る（下記） | `k8s/bootstrap/` |

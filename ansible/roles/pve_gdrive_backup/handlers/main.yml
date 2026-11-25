@@ -1,0 +1,17 @@
+- name: Restart lvm-thinpool-metrics.timer
+  ansible.builtin.systemd_service:
+    name: lvm-thinpool-metrics.timer
+    state: restarted
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"
+
+- name: Reload systemd for pve-gdrive-upload
+  ansible.builtin.systemd_service:
+    daemon_reload: true
+
+- name: Restart pve-gdrive-upload.timer
+  ansible.builtin.systemd_service:
+    name: pve-gdrive-upload.timer
+    state: restarted
+    daemon_reload: true
+  ignore_errors: "{{ ansible_check_mode }}"

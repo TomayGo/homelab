@@ -107,14 +107,89 @@ additionalPrometheusRulesMap:
         keep_firing_for: 10m
         labels:
           severity: warning
+      # ネットワーク共有（cifs/smb3/nfs）を 3 ノードでマウントしていると 1 つの共有で 3 本同時に鳴るため除外する。
+      # また /var/lib/vz-stage は vzdump の一時置き場（新世代書き込み〜prune の数分間だけ膨らむ）なので下の専用ルールで見る
       - alert: DiskSpaceLow
         annotations:
           summary: '{{ $labels.node }} disk space low on {{ $labels.mountpoint }}'
-        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay"} / node_filesystem_size_bytes)
+        expr: (1 - node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|cifs|smb3|nfs.*",mountpoint!="/var/lib/vz-stage"} / node_filesystem_size_bytes)
           * 100 > 90
         for: 30s
         labels:
           severity: critical
+      # vzdump の一時置き場（96GiB thin LV）。書き込み中の一時上昇ではなく、未削除の残骸で 1 時間以上埋まり続けたときだけ知らせる
+      - alert: VzdumpStageDiskFull
+        annotations:
+          summary: '{{ $labels.node }} の /var/lib/vz-stage 使用率が {{ $value | printf "%.1f" }}%（1時間継続）'
+          description: 'ls -lh /var/lib/vz-stage/dump と journalctl -u pve-gdrive-upload を確認する'
+        expr: (1 - node_filesystem_avail_bytes{mountpoint="/var/lib/vz-stage"} / node_filesystem_size_bytes)
+          * 100 > 90
+        for: 1h
+        labels:
+          severity: warning
+      # pve/data（local-lvm）には ceph-osd（384GiB）が同居しており、Data% / Meta% が枯渇すると OSD が止まる
+      - alert: LvmThinpoolDataHigh
+        annotations:
+          summary: '{{ $labels.node }} の LVM thin pool {{ $labels.vg }}/{{ $labels.lv }} Data 使用率が {{ $value | humanizePercentage }}'
+          description: 'lvs -a {{ $labels.vg }} で不要なスナップショットや LV を確認し、ステージング領域に fstrim を流す'
+        expr: pve_lvm_thinpool_data_ratio > 0.85
+        for: 5m
+        labels:
+          severity: warning
+      - alert: LvmThinpoolDataCritical
+        annotations:
+          summary: '{{ $labels.node }} の LVM thin pool {{ $labels.vg }}/{{ $labels.lv }} Data 使用率が {{ $value | humanizePercentage }}'
+          description: '枯渇すると同居している ceph-osd が I/O エラーで止まる。直ちに不要なスナップショットや一時ファイルを削除して fstrim する'
+        expr: pve_lvm_thinpool_data_ratio > 0.92
+        for: 2m
+        labels:
+          severity: critical
+      - alert: LvmThinpoolMetadataHigh
+        annotations:
+          summary: '{{ $labels.node }} の LVM thin pool {{ $labels.vg }}/{{ $labels.lv }} Metadata 使用率が {{ $value | humanizePercentage }}'
+          description: 'Metadata が溢れても Data 枯渇と同様に pool 全体が止まる。lvextend --poolmetadatasize を検討する'
+        expr: pve_lvm_thinpool_metadata_ratio > 0.80
+        for: 2m
+        labels:
+          severity: critical
+    - name: pve-backup
+      # backup-every3d（*-*-1/3 10:00、対象 VMID 101/103/106/500、最大間隔 72 時間）の Google Drive 退避監視。
+      # pve-3 には通常対象ゲストが居ないためノード単位ではなく VMID 単位でクラスタ横断判定する。
+      # 認証情報投入前（pve_vzdump_gdrive_configured == 0）は鮮度アラートを発火させない
+      rules:
+      - alert: VzdumpGdriveSyncFailed
+        annotations:
+          summary: 'VM/CT {{ $labels.vmid }}（{{ $labels.node }}）のバックアップまたは Google Drive 転送が失敗した'
+          description: '該当ノードで journalctl -u pve-gdrive-upload -t vzdump-gdrive-hook を確認する（2時間おきに自動再試行される）'
+        expr: pve_vzdump_gdrive_last_run_success == 0
+        for: 30m
+        labels:
+          severity: warning
+      - alert: VzdumpGdriveStale
+        annotations:
+          summary: 'VM/CT {{ $labels.vmid }} の Google Drive バックアップが 4 日以上成功していない'
+          description: '/etc/pve/jobs.cfg の backup-every3d と各ノードの pve-gdrive-upload.service の状態・OAuth トークンを確認する'
+        expr: |
+          (
+            (time() - max by(vmid) (pve_vzdump_gdrive_last_success_timestamp_seconds)) > 367200
+            and on() (max(pve_vzdump_gdrive_configured) == 1)
+          )
+          or
+          (
+            (
+              (
+                label_replace(vector(1), "vmid", "101", "", "")
+                or label_replace(vector(1), "vmid", "103", "", "")
+                or label_replace(vector(1), "vmid", "106", "", "")
+                or label_replace(vector(1), "vmid", "500", "", "")
+              )
+              and on() (max(pve_vzdump_gdrive_configured) == 1)
+            )
+            unless on(vmid) pve_vzdump_gdrive_last_success_timestamp_seconds
+          )
+        for: 2h
+        labels:
+          severity: warning
     - name: r2
       # Cloudflare R2 の無料枠（アカウント全体・月あたり）: 保存 10 GB-month、Class A 100 万回、Class B 1000 万回。
       # 80% で warning、90% で critical。GB は 10^9 として早めに出す。保存量は請求上は「日ごとの最大値の月平均」だが、

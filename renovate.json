@@ -77,6 +77,18 @@
       "depNameTemplate": "TomayGo/pvectl",
       "datasourceTemplate": "github-releases",
       "extractVersionTemplate": "^v(?<version>.*)$"
+    },
+    {
+      "customType": "regex",
+      "managerFilePatterns": [
+        "/^ansible/roles/pve_gdrive_backup/defaults/main\\.yml$/"
+      ],
+      "matchStrings": [
+        "rclone_version: \"(?<currentValue>[^\"]+)\""
+      ],
+      "depNameTemplate": "rclone/rclone",
+      "datasourceTemplate": "github-releases",
+      "extractVersionTemplate": "^v(?<version>.*)$"
     }
   ],
   "packageRules": [

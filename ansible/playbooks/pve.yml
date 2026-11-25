@@ -17,3 +17,4 @@
     - { role: pvectl, tags: [pvectl] }
     - { role: superio_fan, tags: [superio_fan] }
     - { role: pve_cifs_remount, tags: [pve_cifs_remount] }
+    - { role: pve_gdrive_backup, tags: [pve_gdrive_backup] }

@@ -14,23 +14,43 @@
 - 丸ごとのバックアップは`tar czf etc-pve-$(date +%F).tgz -C / etc/pve`で取る（`priv/`に鍵があるので、置き場所の権限に注意）
 - `storage.cfg`の使えない定義（`local-nvme`、`data`）と、存在しないノードの`/etc/pve/nodes/pve/`は、2026-10-09に削除した。削除前のものは`pve-1:/root/backups/cleanup-2026-10-09/`にある
 
-### vzdumpの定期ジョブ
+### vzdumpの定期ジョブとGoogle Drive退避
 
-`/etc/pve/jobs.cfg`のジョブ`backup-every3d`（2026-10-09に作成）。全損したら、`pc-backups`を追加してから同じ内容で作り直す。
+各ノードの`local-lvm`（`pve/data`）から切った96GiBのthin LV（`/var/lib/vz-stage`、PVEストレージ`local-stage`）に直近1世代を置き、hookスクリプトから起動される`pve-gdrive-upload.service`（Ansibleロール`pve_gdrive_backup`）が`rclone crypt`で暗号化してGoogle Drive（`proxmox-vzdump/dump/`、3世代保持）へ非同期退避する。
 
 ```sh
+# 1. PVE ストレージ local-stage の追加（クラスタで1回だけ）
+pvesm add dir local-stage --path /var/lib/vz-stage --content backup --prune-backups keep-last=1 --shared 0
+
+# 2. 定期ジョブ backup-every3d の設定（新規作成時。既存ジョブの切り替えは pvesh set /cluster/backup/backup-every3d ...）
 pvesh create /cluster/backup --id backup-every3d --schedule '*-*-1/3 10:00' \
-  --storage pc-backups --vmid 101,103,106,500 --mode snapshot --compress zstd \
-  --prune-backups keep-last=3 --notes-template '{{guestname}}' \
-  --comment 'ap/mc/dtv/discordbots, every 3 days, keep 3'
+  --storage local-stage --vmid 101,103,106,500 --mode snapshot --compress zstd \
+  --prune-backups keep-last=1 --script /usr/local/sbin/vzdump-gdrive-hook.sh \
+  --notes-template '{{guestname}}' \
+  --comment 'ap/mc/dtv/discordbots, every 3 days, local keep 1 + gdrive keep 3'
 ```
 
 - 対象：101 dtv、103 ap、106 mc、500 discordbots。どれもRepoからは戻せない（ドライバのビルド、SoftEther VPNとZeroTierの状態、ワールドや録画のデータなど）
 - 対象外：Talos VM（201〜203）。OpenTofuとArgo CDで作り直せるうえ、PVCはVMのディスクではないのでvzdumpに入らない。CT903（旧NetBox）は2026-10-09に削除した
 - 日付が1、4、7、…、31日の10時に取る。31日のある月は、31日と翌月1日が続けて実行される
-- CIFSへのvzdumpは毎回フルバックアップになる（差分を取るにはPBSが要る）。1回約60GBで、3世代で約180GB
-- 保存先はWindowsのPCなので、10時にPCが起きていないと失敗する
-- `keep-last=3`は、手で取ったバックアップも数に入れて消す。2026-10-09に手で取った分も、3回目の実行後に消える
+- ローカル（`local-stage`）には直近1世代が残るため、通常のリストアはPVEのGUIからローカルNVMe速度でそのまま戻せる。HA対象の`vm:106`が別ノードへ移動した場合、旧ノードに残ったアップロード済みローカル世代は`pve-gdrive-upload.sh`が自動で掃除する
+- Google Drive側の暗号化は`filename_encryption = off`（中身はNaCl SecretBox暗号化、ファイル名は平文＋`.bin`）。**Google DriveのWeb画面から`.bin`を直接ダウンロードしてもそのままでは復号できないため、必ず下の`rclone`（`gdrive_crypt:`）経由で取得する**
+- クラスタから完全に削除したゲストのクラウド側アーカイブは、自動pruneの対象外になりGoogle Drive上に残る（意図した仕様。不要なら手動で`rclone deletefile`する）
+- 初回セットアップ・OAuthトークン再発行：`scripts/enable-gdrive-backup.sh`を実行して`ansible/group_vars/pve/gdrive.sops.yaml`を更新し、`ansible-playbook playbooks/pve.yml --tags pve_gdrive_backup`を流す（GCPのOAuth同意画面は7日失効を避けるため「本番（In production）」、スコープは`drive.file`にする）
+
+```sh
+# Google Drive（gdrive_crypt:）から過去世代をローカルに戻してリストアする手順
+set -a && . /etc/pve-gdrive-backup/rclone.env && set +a
+export RCLONE_CONFIG=/var/lib/pve-gdrive-backup/rclone.conf
+
+# 一覧確認（gdrive_crypt: 越しなら .bin が外れた元のファイル名で見える）
+rclone lsf gdrive_crypt:
+
+# 対象アーカイブを /var/lib/vz-stage/dump/ に復号ダウンロードしてリストア（例：別 VMID 999 で試験復元）
+rclone copy "gdrive_crypt:vzdump-lxc-500-YYYY_MM_DD-HH_MM_SS.tar.zst" /var/lib/vz-stage/dump/ -P
+pct restore 999 /var/lib/vz-stage/dump/vzdump-lxc-500-YYYY_MM_DD-HH_MM_SS.tar.zst --storage ceph-pool
+# QEMU VM の場合は qmrestore /var/lib/vz-stage/dump/vzdump-qemu-103-...vma.zst 999 --storage local-lvm
+```
 
 ## Ceph（pveceph）
 
