@@ -5,7 +5,8 @@
   ],
   "timezone": "Asia/Tokyo",
   "dependencyDashboard": true,
-  "prConcurrentLimit": 3,
+  "prConcurrentLimit": 0,
+  "prHourlyLimit": 0,
   "ignorePaths": [
     "**/*.enc.yaml",
     "**/*.sops.yaml",
