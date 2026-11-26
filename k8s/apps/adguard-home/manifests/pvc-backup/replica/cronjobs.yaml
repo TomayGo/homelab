@@ -11,7 +11,7 @@ spec:
         spec:
           containers:
           - name: snap-backup
-            image: ghcr.io/tomaygo/backup-tools:sha-01d8a40
+            image: ghcr.io/tomaygo/backup-tools:sha-545c0c9
             env:
             - name: SNAP_PVCS
               value: conf-agh-replica-0 work-agh-replica-0
@@ -33,7 +33,7 @@ spec:
             runAsGroup: 0
           containers:
           - name: backup
-            image: ghcr.io/tomaygo/backup-tools:sha-01d8a40
+            image: ghcr.io/tomaygo/backup-tools:sha-545c0c9
             env:
             - name: BACKUP_NAME
               value: dns/agh-replica

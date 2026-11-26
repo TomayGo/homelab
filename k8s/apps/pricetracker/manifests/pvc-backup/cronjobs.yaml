@@ -11,7 +11,7 @@ spec:
         spec:
           containers:
           - name: snap-backup
-            image: ghcr.io/tomaygo/backup-tools:sha-01d8a40
+            image: ghcr.io/tomaygo/backup-tools:sha-545c0c9
             env:
             - name: SNAP_PVCS
               value: pricetracker-data
@@ -34,7 +34,7 @@ spec:
             runAsNonRoot: true
           containers:
           - name: backup
-            image: ghcr.io/tomaygo/backup-tools:sha-01d8a40
+            image: ghcr.io/tomaygo/backup-tools:sha-545c0c9
             env:
             - name: BACKUP_NAME
               value: pricetracker/data
